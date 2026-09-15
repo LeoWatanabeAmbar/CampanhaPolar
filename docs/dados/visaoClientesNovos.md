@@ -9,6 +9,8 @@
 - detalhe com data, grupo comercial, pedido de venda, vendedor, região, segmento, atribuição e XP;
 - uma linha por vendedor e região: uma triangulação com dois participantes aparece em duas linhas.
 
+Na exibição dos pedidos, o prefixo da filial padrão `01101/` fica oculto. Pedidos de outras filiais preservam sua identificação completa.
+
 Pedidos do mesmo grupo comercial na mesma data formam um único evento. Um evento confirmado gera 10 XP brutos de cliente novo. Com um vendedor identificado, ele recebe 10 XP; com exatamente dois vendedores válidos, cada um recebe 5 XP. A página informa o valor anterior ao teto individual acumulado de 100 XP, cuja consolidação será feita na apuração completa da campanha.
 
 No resumo regional, cada grupo comercial é contado uma vez em cada região participante. Quando o evento reúne duas regiões, cada região recebe 5 XP; se os dois vendedores pertencem à mesma região, as duas linhas somam os 10 XP integrais nela. Eventos pendentes aparecem na lista e na quantidade, mas somam zero XP.

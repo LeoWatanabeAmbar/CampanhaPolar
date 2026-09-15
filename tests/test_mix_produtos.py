@@ -185,6 +185,8 @@ def test_page_renders_mix_summary_region_filter_and_details():
     )
     assert "Lista das expansões" in summary_html
     detail = app.dataframe[0].value
+    assert all("01101/" not in value for value in detail["Pedido de venda"])
+    assert detail.iloc[0]["Pedido de venda"] == "058349"
     assert list(detail.columns) == [
         "Data", "Grupo comercial", "Família", "Produtos", "Pedido de venda",
         "Vendedores", "Região", "Segmento", "Valor da linha", "Mínimo", "Resultado", "XP",

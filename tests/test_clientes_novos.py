@@ -152,6 +152,8 @@ def test_page_renders_only_region_filter_summary_and_detailed_table():
         "XP",
     ]
     assert len(app.dataframe[0].value) == 4
+    assert all("01101/" not in value for value in app.dataframe[0].value["Pedido de venda"])
+    assert app.dataframe[0].value.iloc[0]["Pedido de venda"] == "058349"
     triangulation = app.dataframe[0].value[
         app.dataframe[0].value["Grupo comercial"] == "PLANO INCORPORAÇÕES"
     ]

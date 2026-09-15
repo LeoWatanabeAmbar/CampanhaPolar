@@ -9,6 +9,8 @@
 - data da primeira compra, códigos dos produtos, pedidos reunidos no dia e família;
 - uma linha por vendedor e região, com segmento, valor, mínimo, resultado e XP.
 
+Na exibição dos pedidos, o prefixo da filial padrão `01101/` fica oculto. Pedidos de outras filiais preservam sua identificação completa.
+
 O valor dos pedidos do mesmo grupo, data e família é somado antes de verificar o mínimo. Cada primeira compra de família que cumprir as regras gera 10 XP. Um vendedor recebe 10 XP; exatamente dois aparecem em duas linhas de 5 XP cada. O indicador não possui teto individual. Clientes KA aparecem sem XP no detalhamento e não entram no resumo de expansões confirmadas.
 
 ## Consulta e regras aplicadas

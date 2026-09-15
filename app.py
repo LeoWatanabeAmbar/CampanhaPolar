@@ -336,6 +336,11 @@ def render_region_summary_table(summary: pd.DataFrame, list_column: str):
     st.markdown(build_region_summary_html(summary, list_column), unsafe_allow_html=True)
 
 
+def format_sales_orders(value: object) -> str:
+    """Oculta a filial padrão na exibição e preserva pedidos de outras filiais."""
+    return str(value or "").replace("01101/", "")
+
+
 def validate_customer_detail_contract(
     frame: pd.DataFrame,
     required_columns: set[str],
@@ -544,6 +549,7 @@ def render_new_customers(repository: NewCustomersRepository):
     display = filtered.copy()
     first_purchase = pd.to_datetime(display["data_primeira_compra"], errors="coerce")
     display["data_primeira_compra"] = first_purchase.dt.strftime("%d/%m/%Y")
+    display["pedidos"] = display["pedidos"].map(format_sales_orders)
     display = display.rename(columns={
         "nome_grupo_comercial": "Grupo comercial",
         "data_primeira_compra": "Data",
@@ -614,6 +620,7 @@ def render_reactivated_customers(repository: ReactivatedCustomersRepository):
     display = filtered.copy()
     activation = pd.to_datetime(display["data_reativacao"], errors="coerce")
     display["data_reativacao"] = activation.dt.strftime("%d/%m/%Y")
+    display["pedidos"] = display["pedidos"].map(format_sales_orders)
     display["data_ultima_compra"] = pd.to_datetime(
         display["data_ultima_compra"], errors="coerce"
     ).dt.strftime("%d/%m/%Y")
@@ -688,6 +695,7 @@ def render_product_mix(repository: ProductMixRepository):
     display = filtered.copy()
     event_date = pd.to_datetime(display["data_expansao"], errors="coerce")
     display["data_expansao"] = event_date.dt.strftime("%d/%m/%Y")
+    display["pedidos"] = display["pedidos"].map(format_sales_orders)
     display = display.rename(columns={
         "data_expansao": "Data",
         "nome_grupo_comercial": "Grupo comercial",

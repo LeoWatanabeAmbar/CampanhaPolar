@@ -141,6 +141,8 @@ def test_page_renders_reactivated_summary_region_filter_and_details():
     )
     assert "GRUPO PENDENTE</div><div class='polar-summary-item'>URBEN PARTICIPAÇÕES" in summary_html
     detail = app.dataframe[0].value
+    assert all("01101/" not in value for value in detail["Pedido de venda"])
+    assert detail.iloc[0]["Pedido de venda"] == "058476"
     assert list(detail.columns) == [
         "Data", "Última compra", "Prazo", "Grupo comercial", "Pedido de venda",
         "Vendedores", "Região", "Segmento", "Atribuição", "XP",
