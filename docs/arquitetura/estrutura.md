@@ -58,7 +58,7 @@ Descreva as telas desejadas em linguagem simples. Exemplos possíveis: visão ge
 | Tela desejada | O que deve mostrar | Quem pode acessar |
 | --- | --- | --- |
 | Visão geral | Metas publicadas, regiões participantes, cobertura das fases e XP regional de adiantamento em toda a campanha | Usuários autenticados consultam |
-| Clientes novos | Primeira compra elegível por grupo em toda a campanha, pedidos consolidados no dia, responsáveis, regiões, valor líquido, atribuição e XP bruto | Usuários autenticados consultam |
+| Clientes novos | Resumo de quantidade, lista e XP por região; detalhe de data, grupo, pedidos, vendedor, região, segmento, atribuição e XP | Usuários autenticados consultam |
 | Clientes reativados | Retorno do grupo após 6 meses em Canais ou 12 meses em Construção, última compra, pedidos, responsáveis, valor líquido e XP bruto | Usuários autenticados consultam |
 | Mix de produtos | Primeira compra das quatro famílias mapeadas, mínimo aplicável, exclusões de KA, pendências, atribuição e XP | Usuários autenticados consultam |
 | Adiantamento de meta | Uma linha por região e 12 checks: três fases para cada mês de setembro a dezembro | Usuários autenticados consultam; somente `lais.vendrasco@ambar.tech` e `leonardo.watanabe@ambar.tech` salvam |

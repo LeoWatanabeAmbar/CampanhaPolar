@@ -196,24 +196,10 @@ def build_overview_frame(rows: list[dict], goals: list[dict]) -> pd.DataFrame:
 
 
 def build_new_customers_region_summary(frame: pd.DataFrame) -> pd.DataFrame:
-    """Resume clientes novos e distribui o XP do evento entre suas regiões."""
-    records = []
-    for row in frame.to_dict("records"):
-        regions = sorted({
-            region.strip()
-            for region in str(row["regioes"]).split(" · ")
-            if region.strip()
-        })
-        if not regions:
-            continue
-        xp_per_region = float(row["xp_evento"]) / len(regions)
-        for region in regions:
-            records.append({
-                "regiao": region,
-                "grupo_comercial_id": row["grupo_comercial_id"],
-                "nome_grupo_comercial": row["nome_grupo_comercial"],
-                "xp_regiao": xp_per_region,
-            })
+    """Resume as linhas de atribuição dos clientes novos por região."""
+    records = [
+        row for row in frame.to_dict("records") if str(row["regiao"]).strip()
+    ]
 
     if not records:
         return pd.DataFrame(columns=[
@@ -233,7 +219,7 @@ def build_new_customers_region_summary(frame: pd.DataFrame) -> pd.DataFrame:
             "Lista dos clientes novos": " · ".join(
                 sorted(clients.values(), key=str.casefold)
             ),
-            "Total XP": float(rows["xp_regiao"].sum()),
+            "Total XP": float(rows["xp"].sum()),
         })
     return pd.DataFrame(summary)
 
@@ -417,81 +403,38 @@ def render_new_customers(repository: NewCustomersRepository):
 
     st.subheader("Detalhamento dos clientes")
     region_names = sorted({
-        region.strip()
-        for value in frame["regioes"]
-        for region in str(value).split(" · ")
-        if region.strip()
+        str(region).strip() for region in frame["regiao"] if str(region).strip()
     })
-    filter_region, filter_status, filter_search = st.columns((1, 1, 2))
-    with filter_region:
-        selected_region = st.selectbox("Região", ["Todas", *region_names])
-    with filter_status:
-        selected_status = st.selectbox("Atribuição", ["Todas", "Confirmadas", "Pendentes"])
-    with filter_search:
-        search = st.text_input("Buscar", placeholder="Grupo, pedido ou vendedor")
+    selected_region = st.selectbox("Região", ["Todas", *region_names])
 
     filtered = frame.copy()
     if selected_region != "Todas":
-        filtered = filtered[filtered["regioes"].map(
-            lambda value: selected_region in {item.strip() for item in str(value).split(" · ")}
-        )]
-    pending = filtered["situacao_atribuicao"].str.startswith("Pendente")
-    if selected_status == "Confirmadas":
-        filtered = filtered[~pending]
-    elif selected_status == "Pendentes":
-        filtered = filtered[pending]
-    if normalized_search := search.strip():
-        searchable = filtered[[
-            "grupo_comercial_id", "nome_grupo_comercial", "pedidos", "vendedores", "regioes",
-        ]].astype(str).agg(" ".join, axis=1)
-        filtered = filtered[searchable.str.contains(normalized_search, case=False, regex=False)]
+        filtered = filtered[filtered["regiao"] == selected_region]
 
-    a, b, c, d = st.columns(4)
-    a.metric("Clientes novos", len(filtered))
-    b.metric("Pedidos no primeiro evento", int(filtered["quantidade_pedidos"].sum()))
-    c.metric("Valor líquido elegível", format_currency_br(float(filtered["valor_liquido_elegivel"].sum())))
-    d.metric("XP bruto confirmado", f"{float(filtered['xp_evento'].sum()):g} XP")
-
-    pending_count = int(filtered["situacao_atribuicao"].str.startswith("Pendente").sum())
-    if pending_count:
-        st.warning(
-            f"{pending_count} cliente(s) novo(s) possuem atribuição pendente e ainda não geram XP."
-        )
-
-    st.subheader("Primeiros eventos de compra")
     st.caption(
-        "Pedidos do mesmo grupo na mesma data formam um evento. O XP exibido é anterior ao teto "
-        "individual de 100 XP para clientes novos."
+        "Cada linha representa a atribuição de um vendedor. Pedidos triangulados aparecem em "
+        "duas linhas, uma para cada vendedor e região."
     )
     display = filtered.copy()
     first_purchase = pd.to_datetime(display["data_primeira_compra"], errors="coerce")
-    display["competencia"] = first_purchase.dt.month.map(MONTHS)
     display["data_primeira_compra"] = first_purchase.dt.strftime("%d/%m/%Y")
     display = display.rename(columns={
-        "competencia": "Competência",
-        "grupo_comercial_id": "Código",
         "nome_grupo_comercial": "Grupo comercial",
-        "data_primeira_compra": "Primeira compra",
-        "pedidos": "Pedidos",
-        "quantidade_pedidos": "Qtd. pedidos",
-        "vendedores": "Vendedores",
-        "regioes": "Regiões",
+        "data_primeira_compra": "Data",
+        "pedidos": "Pedido de venda",
+        "vendedor": "Vendedores",
+        "regiao": "Região",
         "segmento": "Segmento",
-        "valor_liquido_elegivel": "Valor elegível",
         "situacao_atribuicao": "Atribuição",
-        "xp_evento": "XP do evento",
-        "xp_por_vendedor": "XP por vendedor",
+        "xp": "XP",
     })
     st.dataframe(
         display[[
-            "Competência", "Primeira compra", "Código", "Grupo comercial", "Pedidos", "Qtd. pedidos",
-            "Vendedores", "Regiões", "Segmento", "Valor elegível", "Atribuição",
-            "XP do evento", "XP por vendedor",
+            "Data", "Grupo comercial", "Pedido de venda", "Vendedores", "Região",
+            "Segmento", "Atribuição", "XP",
         ]],
         column_config={
-            "Valor elegível": st.column_config.NumberColumn("Valor elegível", format="R$ %.2f"),
-            "XP do evento": st.column_config.NumberColumn("XP do evento", format="%.0f XP"),
-            "XP por vendedor": st.column_config.NumberColumn("XP por vendedor", format="%.0f XP"),
+            "XP": st.column_config.NumberColumn("XP", format="%.0f XP"),
         },
         hide_index=True,
         width="stretch",

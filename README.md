@@ -3,7 +3,7 @@
 Painel implementado no padrão visual do Gestão Comercial, com navegação lateral e cinco páginas:
 
 - **Visão geral:** metas publicadas da campanha, regiões participantes, fases confirmadas, XP regional de adiantamento, cobertura por fase e detalhamento regional.
-- **Clientes novos:** primeiros eventos elegíveis por grupo comercial, pedidos, vendedores, regiões, valor líquido e XP bruto do evento.
+- **Clientes novos:** resumo por região e detalhamento por vendedor, com duas linhas para triangulações e o XP atribuído a cada participante.
 - **Clientes reativados:** retornos após 6 meses em Canais ou 12 meses em Construção, com última compra, responsáveis e XP.
 - **Mix de produtos:** primeira compra das famílias mapeadas, mínimos por segmento, exclusões, pendências e XP.
 - **Adiantamento de meta:** uma linha por região e 12 checks, com as três fases de setembro, outubro, novembro e dezembro na mesma tabela.

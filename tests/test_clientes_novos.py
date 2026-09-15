@@ -17,45 +17,44 @@ def sample_rows():
             "nome_grupo_comercial": "FIPAL CONSTRUTORA",
             "data_primeira_compra": "2026-09-01",
             "pedidos": "01101/058349",
-            "quantidade_pedidos": 1,
-            "vendedores": "Vendedor A",
-            "regioes": "SUL 01",
+            "vendedor": "Vendedor A",
+            "regiao": "SUL 01",
             "segmento": "Construção",
-            "valor_liquido_elegivel": 11941.47,
-            "quantidade_vendedores": 1,
             "situacao_atribuicao": "Integral",
-            "xp_evento": 10,
-            "xp_por_vendedor": 10,
+            "xp": 10,
         },
         {
             "grupo_comercial_id": "F224",
             "nome_grupo_comercial": "PLANO INCORPORAÇÕES",
             "data_primeira_compra": "2026-09-10",
             "pedidos": "01101/058691 · 01101/058697",
-            "quantidade_pedidos": 2,
-            "vendedores": "Vendedor B · Vendedor C",
-            "regioes": "NORTE 01 · NORTE 02",
+            "vendedor": "Vendedor B",
+            "regiao": "NORTE 01",
             "segmento": "Construção",
-            "valor_liquido_elegivel": 54247.08,
-            "quantidade_vendedores": 2,
             "situacao_atribuicao": "Divisão 50/50",
-            "xp_evento": 10,
-            "xp_por_vendedor": 5,
+            "xp": 5,
+        },
+        {
+            "grupo_comercial_id": "F224",
+            "nome_grupo_comercial": "PLANO INCORPORAÇÕES",
+            "data_primeira_compra": "2026-09-10",
+            "pedidos": "01101/058691 · 01101/058697",
+            "vendedor": "Vendedor C",
+            "regiao": "NORTE 02",
+            "segmento": "Construção",
+            "situacao_atribuicao": "Divisão 50/50",
+            "xp": 5,
         },
         {
             "grupo_comercial_id": "F999",
             "nome_grupo_comercial": "GRUPO PENDENTE",
             "data_primeira_compra": "2026-09-12",
             "pedidos": "01101/058999",
-            "quantidade_pedidos": 1,
-            "vendedores": "Vendedor D",
-            "regioes": "NORTE 01",
+            "vendedor": "Vendedor D",
+            "regiao": "NORTE 01",
             "segmento": "Construção",
-            "valor_liquido_elegivel": 1000,
-            "quantidade_vendedores": 1,
             "situacao_atribuicao": "Pendente: região sem meta",
-            "xp_evento": 0,
-            "xp_por_vendedor": 0,
+            "xp": 0,
         },
     ]
 
@@ -84,8 +83,8 @@ def test_repository_loads_new_customers_with_month_parameter():
 
     assert client.calls == [(LOAD_FUNCTION, {"p_competencia": "2026-09-01"})]
     assert rows[0]["grupo_comercial_id"] == "F213"
-    assert rows[0]["valor_liquido_elegivel"] == pytest.approx(11941.47)
-    assert rows[1]["xp_por_vendedor"] == 5
+    assert rows[0]["vendedor"] == "Vendedor A"
+    assert rows[1]["xp"] == 5
 
 
 def test_repository_rejects_invalid_month_before_rpc():
@@ -112,6 +111,8 @@ def test_sql_applies_confirmed_new_customer_rules():
     assert "fct_nota_devolucao" in sql
     assert "count(distinct (a.filial_id, a.pedido_id))" in sql
     assert "then 10.0 / n.quantidade_vendedores" in sql
+    assert "detalhes as (" in sql
+    assert "inner join detalhes as d" in sql
     assert "m.meta > 0" in sql
 
 
@@ -122,22 +123,16 @@ def page_runner():
     render_new_customers(st.session_state["repo"])
 
 
-def test_page_renders_metrics_pending_warning_and_table():
+def test_page_renders_only_region_filter_summary_and_detailed_table():
     repository = SimpleNamespace(load=lambda: sample_rows())
     app = AppTest.from_function(page_runner)
     app.session_state["repo"] = repository
     app.run(timeout=15)
 
     assert not app.exception
-    assert [metric.label for metric in app.metric] == [
-        "Clientes novos",
-        "Pedidos no primeiro evento",
-        "Valor líquido elegível",
-        "XP bruto confirmado",
-    ]
-    assert app.metric[0].value == "3"
-    assert app.metric[3].value == "20 XP"
-    assert len(app.warning) == 1
+    assert len(app.metric) == 0
+    assert len(app.selectbox) == 1
+    assert app.selectbox[0].label == "Região"
     assert len(app.dataframe) == 2
     assert list(app.dataframe[0].value.columns) == [
         "Região",
@@ -145,6 +140,23 @@ def test_page_renders_metrics_pending_warning_and_table():
         "Lista dos clientes novos",
         "Total XP",
     ]
+    assert list(app.dataframe[1].value.columns) == [
+        "Data",
+        "Grupo comercial",
+        "Pedido de venda",
+        "Vendedores",
+        "Região",
+        "Segmento",
+        "Atribuição",
+        "XP",
+    ]
+    assert len(app.dataframe[1].value) == 4
+    triangulation = app.dataframe[1].value[
+        app.dataframe[1].value["Grupo comercial"] == "PLANO INCORPORAÇÕES"
+    ]
+    assert list(triangulation["Vendedores"]) == ["Vendedor B", "Vendedor C"]
+    assert list(triangulation["Região"]) == ["NORTE 01", "NORTE 02"]
+    assert list(triangulation["XP"]) == [5.0, 5.0]
 
 
 def test_region_summary_counts_clients_and_allocates_event_xp():
@@ -160,3 +172,28 @@ def test_region_summary_counts_clients_and_allocates_event_xp():
     assert summary.loc["NORTE 01", "Total XP"] == pytest.approx(5)
     assert summary.loc["NORTE 02", "Quantidade de clientes novos"] == 1
     assert summary.loc["NORTE 02", "Total XP"] == pytest.approx(5)
+
+
+def test_region_summary_keeps_full_xp_for_two_sellers_in_same_region():
+    import pandas as pd
+
+    from app import build_new_customers_region_summary
+
+    rows = [
+        {
+            "grupo_comercial_id": "F300",
+            "nome_grupo_comercial": "CLIENTE TRIANGULADO",
+            "regiao": "SUL 01",
+            "xp": 5,
+        },
+        {
+            "grupo_comercial_id": "F300",
+            "nome_grupo_comercial": "CLIENTE TRIANGULADO",
+            "regiao": "SUL 01",
+            "xp": 5,
+        },
+    ]
+    summary = build_new_customers_region_summary(pd.DataFrame(rows)).iloc[0]
+
+    assert summary["Quantidade de clientes novos"] == 1
+    assert summary["Total XP"] == pytest.approx(10)

@@ -57,14 +57,10 @@ class NewCustomersRepository:
                 "nome_grupo_comercial": group_name,
                 "data_primeira_compra": str(first_purchase),
                 "pedidos": str(item.get("pedidos") or ""),
-                "quantidade_pedidos": int(item.get("quantidade_pedidos") or 0),
-                "vendedores": str(item.get("vendedores") or ""),
-                "regioes": str(item.get("regioes") or ""),
-                "segmento": str(item.get("segmento") or ""),
-                "valor_liquido_elegivel": float(item.get("valor_liquido_elegivel") or 0),
-                "quantidade_vendedores": int(item.get("quantidade_vendedores") or 0),
+                "vendedor": str(item.get("vendedor") or "Não identificado").strip(),
+                "regiao": str(item.get("regiao") or "").strip(),
+                "segmento": str(item.get("segmento") or "").strip(),
                 "situacao_atribuicao": str(item.get("situacao_atribuicao") or "Pendente"),
-                "xp_evento": float(item.get("xp_evento") or 0),
-                "xp_por_vendedor": float(item.get("xp_por_vendedor") or 0),
+                "xp": float(item.get("xp") or 0),
             })
         return rows

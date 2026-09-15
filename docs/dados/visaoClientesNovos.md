@@ -5,14 +5,13 @@
 ## Conteúdo da página
 
 - tabela inicial por região com quantidade de clientes novos, lista dos grupos comerciais e XP total atribuído à região;
-- indicadores de grupos novos, pedidos reunidos no primeiro evento, valor líquido elegível e XP bruto confirmado;
-- filtros por região, situação da atribuição e busca por grupo, pedido ou vendedor;
-- detalhe da primeira compra, grupo comercial, pedidos, vendedores, regiões, segmento, valor e XP;
-- sinalização dos casos em que a atribuição ainda está pendente.
+- filtro de região no detalhamento;
+- detalhe com data, grupo comercial, pedido de venda, vendedor, região, segmento, atribuição e XP;
+- uma linha por vendedor e região: uma triangulação com dois participantes aparece em duas linhas.
 
 Pedidos do mesmo grupo comercial na mesma data formam um único evento. Um evento confirmado gera 10 XP brutos de cliente novo. Com um vendedor identificado, ele recebe 10 XP; com exatamente dois vendedores válidos, cada um recebe 5 XP. A página informa o valor anterior ao teto individual acumulado de 100 XP, cuja consolidação será feita na apuração completa da campanha.
 
-No resumo regional, cada grupo comercial é contado uma vez em cada região participante. Quando o evento reúne duas regiões, cada região recebe 5 XP; se os dois vendedores pertencem à mesma região, ela recebe os 10 XP integrais. Eventos pendentes aparecem na lista e na quantidade, mas somam zero XP.
+No resumo regional, cada grupo comercial é contado uma vez em cada região participante. Quando o evento reúne duas regiões, cada região recebe 5 XP; se os dois vendedores pertencem à mesma região, as duas linhas somam os 10 XP integrais nela. Eventos pendentes aparecem na lista e na quantidade, mas somam zero XP.
 
 ## Consulta e regras aplicadas
 
@@ -28,7 +27,8 @@ A consulta:
 - abate todas as devoluções vinculadas por nota original, pedido e alocação comercial;
 - remove da conclusão os grupos com data histórica ausente ou devolução sem vínculo inequívoco ao pedido;
 - reúne pedidos do mesmo grupo e dia e considera somente eventos ligados a pelo menos uma região com meta positiva da competência;
-- exige um ou dois vendedores, mapeamento único, segmento consistente e meta positiva em todas as regiões para confirmar os 10 XP do evento.
+- exige um ou dois vendedores, mapeamento único, segmento consistente e meta positiva em todas as regiões para confirmar os 10 XP do evento;
+- devolve o detalhamento por vendedor e região, preservando duas linhas para pedidos triangulados e atribuindo 5 XP a cada participante.
 
 Grupos ausentes ou desconhecidos não aparecem como clientes novos: permanecem aguardando correção cadastral, conforme definido. A função recalcula o resultado a cada consulta; cancelamentos, faturamento, quitações, devoluções, cadastro do grupo e metas podem alterar retroativamente a lista.
 

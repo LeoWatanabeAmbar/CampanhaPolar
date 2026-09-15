@@ -2,21 +2,19 @@
 -- A função usa a situação atual das fontes e fica disponível somente para usuários autenticados.
 begin;
 
+drop function if exists public.campanha_polar_carregar_clientes_novos(date);
+
 create or replace function public.campanha_polar_carregar_clientes_novos(p_competencia date)
 returns table (
     grupo_comercial_id text,
     nome_grupo_comercial text,
     data_primeira_compra date,
     pedidos text,
-    quantidade_pedidos bigint,
-    vendedores text,
-    regioes text,
+    vendedor text,
+    regiao text,
     segmento text,
-    valor_liquido_elegivel numeric,
-    quantidade_vendedores bigint,
     situacao_atribuicao text,
-    xp_evento numeric,
-    xp_por_vendedor numeric
+    xp numeric
 )
 language plpgsql
 security definer
@@ -255,6 +253,25 @@ begin
         from alocacoes as a
         group by a.grupo_comercial_id, a.data_emissao
     ),
+    detalhes as (
+        select
+            a.grupo_comercial_id,
+            a.data_emissao,
+            a.vendedor_id,
+            coalesce(a.nome_vendedor, a.vendedor_id, 'Não identificado')::text as vendedor,
+            coalesce(a.regiao, '')::text as regiao,
+            string_agg(
+                distinct a.filial_id || '/' || a.pedido_id,
+                ' · ' order by a.filial_id || '/' || a.pedido_id
+            )::text as pedidos
+        from alocacoes as a
+        group by
+            a.grupo_comercial_id,
+            a.data_emissao,
+            a.vendedor_id,
+            coalesce(a.nome_vendedor, a.vendedor_id, 'Não identificado'),
+            coalesce(a.regiao, '')
+    ),
     primeira_compra as (
         select e.grupo_comercial_id, min(e.data_emissao)::date as data_primeira_compra
         from eventos as e
@@ -286,13 +303,10 @@ begin
         n.grupo_comercial_id,
         g.nome_grupo_comercial,
         n.data_emissao as data_primeira_compra,
-        n.pedidos,
-        n.quantidade_pedidos,
-        n.vendedores,
-        coalesce(n.regioes, '')::text as regioes,
+        d.pedidos,
+        d.vendedor,
+        d.regiao,
         n.segmento,
-        n.valor_liquido_elegivel,
-        n.quantidade_vendedores,
         case
             when n.tem_vendedor_ausente then 'Pendente: vendedor não identificado'
             when n.quantidade_vendedores not in (1, 2) then 'Pendente: quantidade de vendedores'
@@ -308,19 +322,14 @@ begin
              and n.mapeamento_valido
              and n.quantidade_segmentos = 1
              and n.todas_regioes_participantes
-            then 10 else 0
-        end::numeric as xp_evento,
-        case
-            when not n.tem_vendedor_ausente
-             and n.quantidade_vendedores in (1, 2)
-             and n.mapeamento_valido
-             and n.quantidade_segmentos = 1
-             and n.todas_regioes_participantes
             then 10.0 / n.quantidade_vendedores else 0
-        end::numeric as xp_por_vendedor
+        end::numeric as xp
     from novos as n
     inner join grupos_dim as g on g.grupo_comercial_id = n.grupo_comercial_id
-    order by n.data_emissao, g.nome_grupo_comercial;
+    inner join detalhes as d
+      on d.grupo_comercial_id = n.grupo_comercial_id
+     and d.data_emissao = n.data_emissao
+    order by n.data_emissao, g.nome_grupo_comercial, d.vendedor, d.regiao;
 end;
 $$;
 
