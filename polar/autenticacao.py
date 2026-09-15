@@ -87,8 +87,8 @@ class SupabaseAuthenticator:
             return None
         return self._session_data(response.user, response.session)
 
-    def restore_session(self, saved_session: dict[str, str]) -> dict[str, str]:
-        """Revalida o usuário e substitui tokens renovados na sessão do Streamlit."""
+    def authenticated_client(self, saved_session: dict[str, str]):
+        """Revalida a sessão e devolve um cliente apto a chamar a Data API."""
         try:
             client = self._client()
             response = client.auth.set_session(
@@ -98,9 +98,14 @@ class SupabaseAuthenticator:
             if response.user is None or response.session is None:
                 raise AuthenticationServiceError("Sessão inválida.")
             validated_user = client.auth.get_user(response.session.access_token).user
-            return self._session_data(validated_user, response.session)
+            return self._session_data(validated_user, response.session), client
         except (AuthApiError, HTTPError, KeyError, AttributeError) as error:
             raise AuthenticationServiceError("Não foi possível validar a sessão.") from error
+
+    def restore_session(self, saved_session: dict[str, str]) -> dict[str, str]:
+        """Revalida o usuário e substitui tokens renovados na sessão do Streamlit."""
+        session, _ = self.authenticated_client(saved_session)
+        return session
 
     def sign_out(self, saved_session: dict[str, str]):
         """Revoga somente a sessão usada neste navegador."""

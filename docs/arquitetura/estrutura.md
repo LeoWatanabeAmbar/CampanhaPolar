@@ -18,7 +18,7 @@
 - Armazenamento principal: tabelas no Supabase. Necessidade de exportações ou cópias locais a definir.
 - Participação: derivar por competência de `metas_comerciais`, com `meta > 0` e `time` em `Canais`, `Time Norte` ou `Time Sul`. Não criar participantes a partir de vendedores ativos sem meta; relacionar os vendedores somente depois de definir as regiões elegíveis.
 - Ciclo do vendedor: não filtrar a apuração histórica pelo estado atual `ativo`. Admitidos e desligados mantêm as vendas e os XP elegíveis de seu período, sem proporcionalizar tetos ou metas pelo tempo de participação.
-- Adiantamento manual: tabelas `campanha_polar_adiantamento` e `campanha_polar_adiantamento_historico`, no schema `comercial_marts`, mantidas pelo aplicativo. Os três campos booleanos são a decisão final das contas autorizadas; não calcular datas de encerramento nem validar percentuais contra vendas. A tela lista somente regiões elegíveis pela meta da competência. [SQL de criação](../../sql/adiantamento_meta.sql) preparado; aplicação no banco depende da configuração do ambiente. Não reconstruir essas tabelas no dataflow.
+- Adiantamento manual: tabelas `campanha_polar_adiantamento` e `campanha_polar_adiantamento_historico`, no schema `comercial_marts`, mantidas pelo aplicativo. Os três campos booleanos são a decisão final das contas autorizadas; não calcular datas de encerramento nem validar percentuais contra vendas. A tela lista somente regiões elegíveis pela meta da competência. O Streamlit usa funções RPC da Data API com o JWT autenticado, sem senha de banco. [SQL de criação](../../sql/adiantamento_meta.sql) preparado; aplicação no banco depende da configuração do ambiente. Não reconstruir essas tabelas no dataflow.
 - Quem fará a atualização: [PREENCHER]
 - Frequência necessária: [PREENCHER]
 - É necessário guardar versões anteriores para conferência: [PREENCHER]
@@ -38,7 +38,7 @@ flowchart TD
     M --> C
 ```
 
-O código do dataflow e do Gestão Comercial foi examinado; tabelas e disponibilidade foram conferidas por conexão PostgreSQL somente leitura em 09/09/2026. A conexão da tela de adiantamento foi implementada em 14/09/2026, mas ainda precisa das credenciais do ambiente. As demais integrações permanecem para as próximas etapas. Os contratos e pendências estão em [dadoVenda.md](../dados/dadoVenda.md) e [dadoMeta.md](../dados/dadoMeta.md).
+O código do dataflow e do Gestão Comercial foi examinado; tabelas e disponibilidade foram conferidas por conexão PostgreSQL somente leitura em 09/09/2026. A tela de adiantamento passou a usar Supabase Auth e Data API em 15/09/2026; ainda precisa dos dois secrets públicos no ambiente e da execução do SQL no projeto. As demais integrações permanecem para as próximas etapas. Os contratos e pendências estão em [dadoVenda.md](../dados/dadoVenda.md) e [dadoMeta.md](../dados/dadoMeta.md).
 
 A [tabela derivada de enquadramento](../dados/dadoEnquadramento.md), proposta em 10/09/2026, usará o histórico completo para classificar os pedidos da campanha quanto a clientes novos, reativados e mix. Sua materialização no banco ainda não foi implementada.
 
@@ -47,7 +47,7 @@ A [tabela derivada de enquadramento](../dados/dadoEnquadramento.md), proposta em
 - Onde o painel será executado: computador local, servidor interno ou outro ambiente: [PREENCHER]
 - Número aproximado de usuários: [PREENCHER]
 - Login do painel: **confirmado pelo usuário em 15/09/2026**, e-mail e senha do Supabase Authentication, usando as contas cadastradas em `auth.users`. O aplicativo autentica pela API oficial e não consulta diretamente o schema `auth`.
-- Permissões do adiantamento, confirmadas pelo usuário: `lais.vendrasco@ambar.tech` e `leonardo.watanabe@ambar.tech` editam e salvam; os demais usuários autenticados consultam. O servidor revalida a sessão do Supabase e a permissão em cada gravação. Demais permissões do futuro painel a definir.
+- Permissões do adiantamento, confirmadas pelo usuário: `lais.vendrasco@ambar.tech` e `leonardo.watanabe@ambar.tech` editam e salvam; os demais usuários autenticados consultam. O servidor revalida a sessão, e a função SQL confere a permissão diretamente no JWT em cada gravação. Demais permissões do futuro painel a definir.
 - Uso principal em computador, celular ou ambos: [PREENCHER]
 - Há restrições para armazenamento ou exibição dos dados: [PREENCHER]
 

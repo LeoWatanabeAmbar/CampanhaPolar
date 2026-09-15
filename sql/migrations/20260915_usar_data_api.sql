@@ -1,3 +1,4 @@
+-- Migração para instalações existentes: substitui a conexão PostgreSQL direta pela Data API.
 -- Execute uma vez no SQL Editor do Supabase antes de iniciar o painel.
 -- O Streamlit acessa somente as funções públicas abaixo pela Data API.
 begin;

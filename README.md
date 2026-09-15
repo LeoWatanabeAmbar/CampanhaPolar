@@ -5,20 +5,20 @@ Primeira versão do painel implementada no padrão visual do Gestão Comercial, 
 - **Visão geral:** meta total do mês, regiões participantes, fases confirmadas, XP regional de adiantamento, cobertura por fase e detalhamento regional.
 - **Adiantamento de meta:** uma linha por região e mês, com checks independentes para 32% na primeira semana, 56% na segunda e 80% na terceira.
 
-O login usa e-mail e senha do Supabase Authentication. Qualquer conta válida cadastrada em `auth.users` pode consultar o painel. Somente `lais.vendrasco@ambar.tech` e `leonardo.watanabe@ambar.tech` podem preencher e salvar. A sessão é revalidada no Supabase e a autorização é conferida novamente no servidor a cada salvamento.
+O login usa e-mail e senha do Supabase Authentication. Qualquer conta válida cadastrada em `auth.users` pode consultar o painel. Somente `lais.vendrasco@ambar.tech` e `leonardo.watanabe@ambar.tech` podem preencher e salvar. A sessão é revalidada no Supabase e o mesmo JWT acessa funções restritas da Data API.
 
 ## Configuração e execução
 
 1. Instale as dependências: `python -m pip install -r requirements.txt`.
-2. Execute [sql/adiantamento_meta.sql](sql/adiantamento_meta.sql) no Supabase/PostgreSQL. O script cria somente as duas tabelas novas de registro e histórico no schema `comercial_marts`. Se as tabelas já foram criadas com a permissão exclusiva da Laís, aplique também a [migração que inclui Leonardo](sql/migrations/20260914_adicionar_leonardo_adiantamento.sql), que preserva os dados existentes.
-3. Copie [.streamlit/secrets.example.toml](.streamlit/secrets.example.toml) para `.streamlit/secrets.toml` e configure a conexão privada PostgreSQL, `SUPABASE_URL` e uma `SUPABASE_PUBLISHABLE_KEY`. Nunca use `service_role` ou `sb_secret_...` no fluxo de login.
+2. Execute [sql/adiantamento_meta.sql](sql/adiantamento_meta.sql) no SQL Editor do Supabase. O script cria as duas tabelas de registro e histórico no schema `comercial_marts` e duas funções públicas restritas para leitura e gravação pela Data API. Em uma instalação que já recebeu o SQL anterior, execute [20260915_usar_data_api.sql](sql/migrations/20260915_usar_data_api.sql).
+3. Copie [.streamlit/secrets.example.toml](.streamlit/secrets.example.toml) para `.streamlit/secrets.toml` e configure somente `SUPABASE_URL` e `SUPABASE_PUBLISHABLE_KEY`. Nunca use `service_role` ou `sb_secret_...`.
 4. Inicie: `python -m streamlit run app.py`.
 
-Para publicar no Streamlit Community Cloud, siga o [guia de implantação](docs/arquitetura/deployStreamlitCloud.md). Ele registra o repositório, branch, arquivo principal, secrets e conexões Supabase necessários para este painel.
+Para publicar no Streamlit Community Cloud, siga o [guia de implantação](docs/arquitetura/deployStreamlitCloud.md). Ele registra o repositório, branch, arquivo principal e os dois secrets necessários.
 
-O Supabase Authentication recebe e-mail e senha e devolve os tokens da sessão; a aplicação não consulta `auth.users` diretamente. O cliente de login usa somente a chave publicável. A conexão PostgreSQL permanece restrita ao servidor, com leitura de `metas_comerciais` e acesso às novas tabelas. O script habilita RLS e remove acesso direto das funções `anon` e `authenticated` da API Supabase; a conexão privada precisa pertencer ao proprietário das tabelas ou a um papel de servidor autorizado a operar com RLS. Não disponibilize a credencial de banco ao navegador.
+O Supabase Authentication recebe e-mail e senha e devolve os tokens da sessão; a aplicação não consulta `auth.users` diretamente. O painel chama a Data API com a chave publicável e o JWT do usuário. As tabelas permanecem sem acesso direto para `anon` e `authenticated`. A função de leitura aceita qualquer usuário autenticado; a função de gravação extrai e-mail e ID do próprio JWT e aceita somente as duas contas editoras. Nenhuma senha de PostgreSQL é armazenada no Streamlit.
 
-**Situação local:** a visão geral, a tela de adiantamento, as regras de autorização e o SQL estão implementados. Não foram encontradas credenciais de login ou banco nesta pasta, portanto a migração não foi aplicada no Supabase e o login real ainda exige configuração. O aplicativo mostra uma mensagem de configuração pendente nesse estado.
+**Situação local:** a visão geral, a tela de adiantamento, as regras de autorização e o SQL estão implementados. Os valores reais dos dois secrets não ficam no repositório, e o SQL ainda precisa ser executado no projeto Supabase antes do primeiro acesso. O aplicativo mostra uma mensagem de configuração pendente sem esses secrets.
 
 ## Preenchimento
 
@@ -37,4 +37,4 @@ Instale a ferramenta de testes com `python -m pip install "pytest>=8,<9"` e exec
 
 `python -m pytest -q`
 
-Os testes verificam autenticação e renovação de sessão do Supabase, autorização, persistência em banco temporário, independência das fases e dos meses, correções e histórico, rollback em conflito e interação da tela com editor/leitor. A integração com o PostgreSQL e o Supabase Auth reais depende da configuração do ambiente.
+Os testes verificam autenticação e renovação de sessão, o contrato da Data API, autorização, independência das fases e dos meses, correções e histórico, rollback em conflito e interação da tela com editor/leitor. A integração com o projeto Supabase real depende da configuração do ambiente.

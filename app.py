@@ -7,14 +7,13 @@ from zoneinfo import ZoneInfo
 
 import pandas as pd
 import streamlit as st
-from sqlalchemy import create_engine
-from sqlalchemy.exc import SQLAlchemyError
 
 from polar.autenticacao import AuthenticationServiceError, SupabaseAuthenticator
 from polar.adiantamento import (
     EDITOR_EMAILS,
     FIELDS,
     ConcurrentChange,
+    DataAccessError,
     Identity,
     PermissionDenied,
     Repository,
@@ -186,44 +185,30 @@ def build_overview_frame(rows: list[dict], goals: list[dict]) -> pd.DataFrame:
     return pd.DataFrame(records)
 
 
-@st.cache_resource
-def get_repository(url: str):
-    """Cria a conexão privada e cacheada usada pelo servidor."""
-    if not url.startswith(("postgresql://", "postgresql+psycopg2://")):
-        raise ValueError("Configure uma conexão PostgreSQL para o painel.")
-    if url.startswith("postgresql://"):
-        url = url.replace("postgresql://", "postgresql+psycopg2://", 1)
-    return Repository(create_engine(url, pool_pre_ping=True, connect_args={
-        "sslmode": "require", "connect_timeout": 10,
-    }, hide_parameters=True))
-
-
 def configuration():
-    """Lê banco e Supabase Auth sem expor segredos na interface."""
+    """Lê a configuração pública necessária para Auth e Data API."""
     try:
-        database_url = str(st.secrets["database"]["url"])
         supabase_url = str(st.secrets["SUPABASE_URL"])
         publishable_key = str(st.secrets["SUPABASE_PUBLISHABLE_KEY"])
-        authenticator = SupabaseAuthenticator(supabase_url, publishable_key)
-        return database_url, authenticator
+        return SupabaseAuthenticator(supabase_url, publishable_key)
     except (KeyError, FileNotFoundError, ValueError):
         render_page_header(
             "Campanha Polar",
             "O painel está pronto para receber a conexão segura com os dados comerciais.",
         )
-        st.info("O painel está aguardando a configuração de acesso e banco de dados.")
+        st.info("O painel está aguardando a configuração do Supabase.")
         st.caption("A configuração está descrita no README do projeto.")
         st.stop()
 
 
 def current_identity(authenticator: SupabaseAuthenticator):
-    """Revalida a sessão do Supabase e cria a identidade usada nas permissões."""
+    """Revalida a sessão e devolve identidade e cliente autenticado da Data API."""
     saved_session = st.session_state.get("supabase_auth_session")
     if not isinstance(saved_session, dict):
         raise PermissionDenied("Faça login para acessar o painel.")
-    refreshed_session = authenticator.restore_session(saved_session)
+    refreshed_session, client = authenticator.authenticated_client(saved_session)
     st.session_state["supabase_auth_session"] = refreshed_session
-    return Identity.from_authenticated_user(refreshed_session)
+    return Identity.from_authenticated_user(refreshed_session), client
 
 
 def render_login(authenticator: SupabaseAuthenticator):
@@ -295,8 +280,7 @@ def render_overview(repository: Repository, month: date):
         month,
     )
     rows = repository.load(month)
-    goals = repository.goal_rows(month)
-    frame = build_overview_frame(rows, goals)
+    frame = build_overview_frame(rows, rows)
     if frame.empty:
         st.info("Nenhuma região com meta positiva está disponível para esta competência.")
         return
@@ -378,7 +362,7 @@ def render_table(repository: Repository, month: date, identity: Identity, rechec
             )
             submitted = st.form_submit_button("Salvar alterações", type="primary", width="stretch")
         if submitted:
-            current = recheck_identity()
+            current, _ = recheck_identity()
             if current.user_id != identity.user_id:
                 raise PermissionDenied("A conta conectada mudou. Recarregue a página.")
             versions = {row["regiao"]: row["versao"] for row in rows}
@@ -440,12 +424,12 @@ def main():
     if LOGO_PATH.is_file():
         st.logo(str(LOGO_PATH), size="large")
     apply_polar_style()
-    url, authenticator = configuration()
+    authenticator = configuration()
     if "supabase_auth_session" not in st.session_state:
         render_login(authenticator)
         st.stop()
     try:
-        identity = current_identity(authenticator)
+        identity, data_client = current_identity(authenticator)
     except (PermissionDenied, AuthenticationServiceError):
         st.session_state.pop("supabase_auth_session", None)
         st.warning("Sua sessão expirou ou não pôde ser validada. Entre novamente.")
@@ -454,7 +438,7 @@ def main():
 
     page, month = render_sidebar(identity, authenticator)
     try:
-        repository = get_repository(url)
+        repository = Repository(data_client)
         if page == "Visão geral":
             render_overview(repository, month)
         else:
@@ -464,8 +448,8 @@ def main():
         if st.button("Buscar versão atual"):
             st.session_state.pop("advance_scope", None)
             st.rerun()
-    except SQLAlchemyError:
-        st.error("Não foi possível acessar os registros. Verifique a conexão e tente novamente.")
+    except DataAccessError:
+        st.error("Não foi possível acessar os registros pela Data API do Supabase. Tente novamente.")
 
 
 if __name__ == "__main__":

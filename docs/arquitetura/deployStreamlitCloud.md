@@ -26,12 +26,9 @@ Nunca grave os valores reais no GitHub. Cole este conteúdo no campo **Secrets**
 ```toml
 SUPABASE_URL = "https://SEU_PROJETO.supabase.co"
 SUPABASE_PUBLISHABLE_KEY = "sb_publishable_SUBSTITUA"
-
-[database]
-url = "postgresql+psycopg2://USUARIO:SENHA_URL_ENCODED@HOST:5432/postgres"
 ```
 
-Para o Supabase, prefira a conexão **Session pooler**, porta 5432, copiada em **Connect** no painel do projeto. Ela funciona em redes IPv4 e aceita conexões persistentes. Se a senha contiver `@`, `:`, `/`, `#`, `%`, espaço ou outro caractere reservado, use a senha codificada para URL.
+Encontre a URL do projeto e a chave publicável em **Project Settings → API Keys** no Supabase. O painel acessa os dados pela Data API com o JWT da conta autenticada. Não é necessário configurar Session pooler, usuário de banco ou senha de PostgreSQL.
 
 `SUPABASE_PUBLISHABLE_KEY` deve receber a chave publicável do projeto, normalmente iniciada por `sb_publishable_`. Não use `service_role`, JWT com papel `service_role` ou chave iniciada por `sb_secret_`; essas credenciais têm privilégios administrativos e o aplicativo rejeita seu uso no login.
 
@@ -46,11 +43,14 @@ O aplicativo usa a API do Supabase Authentication para validar `auth.users`; nã
 
 ## 5. Preparar o banco
 
-Antes do primeiro uso, execute [adiantamento_meta.sql](../../sql/adiantamento_meta.sql) no SQL Editor do Supabase. O usuário da URL privada precisa conseguir:
+Antes do primeiro uso, execute [adiantamento_meta.sql](../../sql/adiantamento_meta.sql) no SQL Editor do Supabase. Em um projeto que já recebeu a versão anterior do script, execute [20260915_usar_data_api.sql](../../sql/migrations/20260915_usar_data_api.sql). O SQL:
 
-- ler `comercial_marts.metas_comerciais`;
-- ler e gravar `comercial_marts.campanha_polar_adiantamento`;
-- inserir em `comercial_marts.campanha_polar_adiantamento_historico`.
+- mantém as tabelas de adiantamento e histórico sem acesso direto pela API;
+- cria uma função de leitura para usuários autenticados;
+- cria uma função de gravação que confere no JWT se a conta é Laís ou Leonardo;
+- valida competência, região, tipos, versões e histórico dentro do banco.
+
+As funções ficam no schema `public`, já atendido pela Data API padrão, e acessam internamente as tabelas de `comercial_marts`. Não é preciso expor o schema `comercial_marts` nas configurações da API.
 
 ## 6. Publicar e validar
 
@@ -69,4 +69,4 @@ Como o repositório é privado, o aplicativo nasce privado no Community Cloud. P
 
 O Community Cloud acompanha o GitHub. Novos commits enviados para `main` atualizam o aplicativo automaticamente; mudanças em `requirements.txt` provocam a reinstalação das dependências.
 
-Referências oficiais: [publicar um aplicativo](https://docs.streamlit.io/deploy/streamlit-community-cloud/deploy-your-app/deploy), [secrets no Community Cloud](https://docs.streamlit.io/deploy/streamlit-community-cloud/deploy-your-app/secrets-management), [login com senha no Supabase](https://supabase.com/docs/guides/auth/passwords), [gestão de usuários](https://supabase.com/docs/guides/auth/managing-user-data) e [conexões PostgreSQL do Supabase](https://supabase.com/docs/guides/database/connecting-to-postgres).
+Referências oficiais: [publicar um aplicativo](https://docs.streamlit.io/deploy/streamlit-community-cloud/deploy-your-app/deploy), [secrets no Community Cloud](https://docs.streamlit.io/deploy/streamlit-community-cloud/deploy-your-app/secrets-management), [login com senha no Supabase](https://supabase.com/docs/guides/auth/passwords), [Data API](https://supabase.com/docs/guides/api), [funções de banco](https://supabase.com/docs/guides/database/functions) e [segurança da Data API](https://supabase.com/docs/guides/database/secure-data).

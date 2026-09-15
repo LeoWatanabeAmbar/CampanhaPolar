@@ -15,8 +15,8 @@ A primeira tela está implementada em [app.py](../../app.py). Ela apresenta uma 
 
 - **Somente `lais.vendrasco@ambar.tech` e `leonardo.watanabe@ambar.tech` podem preencher e salvar.** A identificação vem da sessão revalidada no Supabase Authentication.
 - Os demais usuários válidos cadastrados em `auth.users` visualizam os registros e suas últimas atualizações, sem edição.
-- A autorização é verificada no servidor em cada gravação; esconder o botão não é o único controle.
-- O botão **Salvar alterações** grava os checks e observações no PostgreSQL/Supabase. Cada competência tem registros próprios.
+- A autorização é verificada pela função SQL em cada gravação, usando e-mail e ID extraídos do JWT; esconder o botão não é o único controle.
+- O botão **Salvar alterações** grava os checks e observações pela Data API do Supabase. Cada competência tem registros próprios.
 - **Participação confirmada pelo usuário em 14/09/2026:** as linhas vêm somente das regiões de Canais e Construção com meta positiva na competência selecionada. O cadastro de vendedores ativos e registros antigos não criam linhas sem meta. Um mês futuro fica sem regiões até suas metas serem publicadas; depois da publicação, a tela passa a exibi-las pela situação atual.
 - Uma única linha representa uma região no mês, mesmo que nela apareçam dois vendedores.
 
@@ -51,6 +51,8 @@ O histórico fica em `comercial_marts.campanha_polar_adiantamento_historico`, re
 
 Essas tabelas pertencem ao aplicativo, não ao processamento que reconstrói os fatos de vendas. Não devem ser sobrescritas pelo dataflow.
 
+O Streamlit não abre uma conexão PostgreSQL. Depois do login, ele usa a chave publicável e o JWT da sessão para chamar `public.campanha_polar_carregar_adiantamento` e `public.campanha_polar_salvar_adiantamento`. As tabelas não concedem acesso direto aos papéis `anon` ou `authenticated`; as funções `security definer`, com `search_path` vazio e objetos totalmente qualificados, limitam o acesso às operações do painel. A função de salvamento faz toda a validação e a gravação do lote na mesma transação.
+
 ## Relação com XP
 
 **Titularidade confirmada pelo usuário em 14/09/2026:** os XP de adiantamento pertencem à região, assim como os XP de atingimento de vendas. Cada fase confirmada vale 10 XP para a região: até 30 XP por mês e 120 XP na campanha de setembro a dezembro de 2026. Essa decisão atualiza a definição anterior de teto individual deste indicador.
@@ -65,6 +67,6 @@ A tela registra as confirmações por região e mês e exibe o XP regional corre
 
 ## Situação de implantação
 
-Código funcional, autorização e salvamento implementados e testados localmente. O SQL de criação está em [sql/adiantamento_meta.sql](../../sql/adiantamento_meta.sql). Como não foram encontradas credenciais de banco ou login nesta pasta, as tabelas ainda não foram criadas no Supabase por esta implementação.
+Código funcional, autorização e salvamento pela Data API implementados e testados localmente. O SQL de criação está em [sql/adiantamento_meta.sql](../../sql/adiantamento_meta.sql), e a migração para uma instalação anterior está em [20260915_usar_data_api.sql](../../sql/migrations/20260915_usar_data_api.sql). O SQL ainda precisa ser executado no projeto Supabase.
 
-A preparação do banco e a configuração do login estão no [README do projeto](../../README.md). Os testes exercitam login, renovação da sessão, salvamento, leitura por outros usuários, independência das fases/meses, correções, histórico e conflitos. O Supabase Auth e o PostgreSQL reais ainda exigem a configuração do ambiente.
+A preparação do Supabase e a configuração do login estão no [README do projeto](../../README.md). Os testes exercitam login, renovação da sessão, chamadas RPC, salvamento, leitura por outros usuários, independência das fases/meses, correções, histórico e conflitos. O projeto real ainda exige os dois secrets públicos e a execução do SQL.
