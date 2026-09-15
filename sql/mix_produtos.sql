@@ -125,12 +125,6 @@ begin
           and f.data_emissao is null
           and nullif(trim(f.grupo_comercial_id), '') is not null
     ),
-    grupos_com_devolucao_sem_produto as (
-        select distinct nullif(trim(d.grupo_comercial_id), '')::text as grupo_comercial_id
-        from comercial_marts.fct_nota_devolucao as d
-        where nullif(trim(d.grupo_comercial_id), '') is not null
-          and (d.data_devolucao is null or d.data_devolucao <= current_date)
-    ),
     vendas_nao_bloqueadas as (
         select
             trim(f.filial_id)::text as filial_id,
@@ -205,6 +199,31 @@ begin
             v.filial_id, v.pedido_id, v.data_emissao, v.grupo_comercial_id,
             v.grupo_mix, v.produto_id, v.vendedor_id
     ),
+    notas_pedido as (
+        select
+            trim(f.nota_fiscal_id)::text as nota_fiscal_id,
+            nullif(trim(f.vendedor_metricas_id), '')::text as vendedor_id,
+            min(p.filial_id)::text as filial_id,
+            min(p.pedido_id)::text as pedido_id,
+            count(distinct (p.filial_id, p.pedido_id)) as quantidade_pedidos
+        from comercial_marts.fct_faturamento_item as f
+        inner join pedido_contexto as p
+          on p.filial_id = trim(f.filial_id)
+         and p.pedido_id = trim(f.pedido_id)
+        where nullif(trim(f.nota_fiscal_id), '') is not null
+        group by trim(f.nota_fiscal_id), nullif(trim(f.vendedor_metricas_id), '')
+    ),
+    pedidos_com_devolucao as (
+        select distinct
+            n.filial_id,
+            n.pedido_id
+        from comercial_marts.fct_nota_devolucao as d
+        inner join notas_pedido as n
+          on n.nota_fiscal_id = trim(d.nota_fiscal_original_id)
+         and n.vendedor_id is not distinct from nullif(trim(d.vendedor_metricas_id), '')
+         and n.quantidade_pedidos = 1
+        where d.data_devolucao is null or d.data_devolucao <= current_date
+    ),
     alocacoes as (
         select
             v.*,
@@ -215,6 +234,7 @@ begin
                 when upper(trim(vd.time_vendedor)) = 'CANAIS' then 'Canais'
             end::text as segmento_campanha,
             coalesce(vd.mapeamento_unico, false) as mapeamento_unico,
+            dv.pedido_id is not null as tem_devolucao_no_pedido,
             exists (
                 select 1
                 from comercial_marts.metas_comerciais as m
@@ -225,6 +245,9 @@ begin
             ) as is_regiao_participante
         from vendas_por_produto_vendedor as v
         left join vendedores_dim as vd on vd.vendedor_id = v.vendedor_id
+        left join pedidos_com_devolucao as dv
+          on dv.filial_id = v.filial_id
+         and dv.pedido_id = v.pedido_id
         where v.valor_bruto_elegivel > 0
           and v.grupo_comercial_id is not null
     ),
@@ -249,6 +272,7 @@ begin
             sum(a.valor_bruto_elegivel)::numeric as valor_linha_elegivel,
             count(distinct a.vendedor_id) as quantidade_vendedores,
             bool_or(a.vendedor_id is null) as tem_vendedor_ausente,
+            bool_or(a.tem_devolucao_no_pedido) as tem_devolucao_no_pedido,
             bool_and(a.mapeamento_unico and a.segmento_campanha is not null) as mapeamento_valido,
             count(distinct a.segmento_campanha) as quantidade_segmentos,
             bool_or(a.is_regiao_participante) as tem_regiao_participante,
@@ -292,7 +316,6 @@ begin
             g.nome_grupo_comercial,
             ka.grupo_comercial_id is not null as is_ka,
             dp.grupo_comercial_id is not null as tem_data_pendente,
-            dv.grupo_comercial_id is not null as tem_devolucao_sem_produto,
             case
                 when e.segmento = 'Construção' and e.grupo_mix = 'Hydrofix' then 3000
                 when e.segmento = 'Construção' and e.grupo_mix = 'Grelha + Porta Grelha' then 6000
@@ -312,8 +335,6 @@ begin
         inner join grupos_dim as g on g.grupo_comercial_id = e.grupo_comercial_id
         left join grupos_ka as ka on ka.grupo_comercial_id = e.grupo_comercial_id
         left join grupos_com_data_pendente as dp on dp.grupo_comercial_id = e.grupo_comercial_id
-        left join grupos_com_devolucao_sem_produto as dv
-          on dv.grupo_comercial_id = e.grupo_comercial_id
         where e.data_emissao >= date '2026-09-01'
           and e.data_emissao < date '2027-01-01'
           and (
@@ -326,7 +347,6 @@ begin
           and (
               e.data_emissao = p.data_primeira_compra
               or dp.grupo_comercial_id is not null
-              or dv.grupo_comercial_id is not null
           )
           and e.tem_regiao_participante
     ),
@@ -348,7 +368,7 @@ begin
         case
             when p.is_ka then 'Sem XP: cliente KA'
             when p.tem_data_pendente then 'Pendente: data histórica ausente'
-            when p.tem_devolucao_sem_produto then 'Pendente: devolução sem produto'
+            when p.tem_devolucao_no_pedido then 'Pendente: devolução na nota do pedido'
             when p.valor_minimo is null then 'Sem XP: família fora do segmento'
             when p.valor_linha_elegivel < p.valor_minimo then 'Sem XP: abaixo do mínimo'
             when p.tem_vendedor_ausente then 'Pendente: vendedor não identificado'
@@ -362,7 +382,7 @@ begin
         case
             when not p.is_ka
              and not p.tem_data_pendente
-             and not p.tem_devolucao_sem_produto
+             and not p.tem_devolucao_no_pedido
              and p.valor_minimo is not null
              and p.valor_linha_elegivel >= p.valor_minimo
              and not p.tem_vendedor_ausente

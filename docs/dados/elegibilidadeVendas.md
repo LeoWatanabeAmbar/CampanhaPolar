@@ -72,7 +72,7 @@ Recalcular os indicadores derivados do pedido:
 
 **Mapeamento técnico identificado em 14/09/2026:** `comercial_marts.fct_nota_devolucao` expõe `data_devolucao`, `nota_fiscal_original_id`, `nota_fiscal_devolucao_id`, `valor_devolucao`, `valor_devolucao_alocado`, `tipo_alocacao_comercial` e `vendedor_metricas_id`. O dataflow associa a devolução às alocações de `fct_faturamento_item` pela nota original e divide o valor pela quantidade de alocações. Para encontrar a competência original, relacionar a nota a `fct_faturamento_item` para obter o pedido e, depois, ao pedido implantado por filial/pedido para obter `data_emissao`.
 
-A fonte de devolução observada contém valor no nível da nota, sem produto ou item. Isso é suficiente para o abatimento regional total, mas não identifica diretamente qual linha de mix foi devolvida quando a nota original contém vários produtos. Não ratear arbitrariamente esse valor entre linhas para decidir o mínimo de mix; essa atribuição exige uma fonte por item ou uma regra de negócio específica.
+A fonte de devolução observada contém valor no nível da nota, sem produto ou item. Isso é suficiente para o abatimento regional total, mas não identifica diretamente qual linha de mix foi devolvida quando a nota original contém vários produtos. No mix, reavaliar somente o evento que contenha o pedido associado à nota fiscal devolvida; devoluções de outros pedidos do mesmo grupo comercial não interferem. Enquanto faltar o produto devolvido, manter apenas esse evento como pendente, sem ratear arbitrariamente o valor entre linhas.
 
 ## Recálculo após cancelamento
 

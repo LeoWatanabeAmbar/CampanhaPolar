@@ -69,7 +69,7 @@ def sample_rows():
             "segmento": "Canais",
             "valor_linha_elegivel": 2500,
             "valor_minimo": 2200,
-            "situacao_evento": "Pendente: devolução sem produto",
+            "situacao_evento": "Pendente: devolução na nota do pedido",
             "xp": 0,
         },
         {
@@ -150,7 +150,12 @@ def test_sql_applies_mix_rules():
     assert "then 3000" in sql
     assert "then 9000" in sql
     assert "then 2200" in sql
-    assert "pendente: devolução sem produto" in sql
+    assert "notas_pedido as (" in sql
+    assert "pedidos_com_devolucao as (" in sql
+    assert "n.nota_fiscal_id = trim(d.nota_fiscal_original_id)" in sql
+    assert "dv.pedido_id = v.pedido_id" in sql
+    assert "pendente: devolução na nota do pedido" in sql
+    assert "grupos_com_devolucao_sem_produto" not in sql
     assert "then 10.0 / p.quantidade_vendedores" in sql
     assert "detalhes as (" in sql
     assert "inner join detalhes as d" in sql

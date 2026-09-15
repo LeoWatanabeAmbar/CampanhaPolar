@@ -32,4 +32,6 @@ A consulta usa o histórico desde 01/01/2022, considera somente itens elegíveis
 
 ## Devoluções
 
-`fct_nota_devolucao` não identifica o produto ou item devolvido. Por isso, qualquer grupo com devolução encontrada permanece pendente na visão de mix e não recebe XP até existir uma fonte por produto/item. A aplicação não distribui arbitrariamente o valor devolvido entre as famílias.
+Uma devolução só provoca a reavaliação da expansão quando sua nota fiscal original pertence a um dos pedidos que formam o evento de mix. A consulta liga `fct_nota_devolucao.nota_fiscal_original_id` a `fct_faturamento_item.nota_fiscal_id` e, por essa nota, identifica o pedido implantado. Devoluções de outros pedidos do mesmo grupo comercial não alteram o evento.
+
+Como `fct_nota_devolucao` não identifica o produto ou item devolvido, o evento diretamente afetado fica como `Pendente: devolução na nota do pedido` e sem XP até ser possível conferir se o valor mínimo da família continua atendido. A aplicação não distribui arbitrariamente a devolução entre produtos ou famílias.
