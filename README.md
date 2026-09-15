@@ -14,6 +14,8 @@ O login usa Microsoft OIDC, seguindo o padrão do Gestão Comercial. Somente as 
 3. Copie [.streamlit/secrets.example.toml](.streamlit/secrets.example.toml) para `.streamlit/secrets.toml` e configure a conexão privada PostgreSQL e o aplicativo Microsoft Entra do tenant da organização. Não use `common` ou `organizations` no endereço do provedor. Cadastre a URL de retorno `http://localhost:8501/oauth2callback` no aplicativo Entra para a execução local. Em hospedagem, use sua URL HTTPS.
 4. Inicie: `python -m streamlit run app.py`.
 
+Para publicar no Streamlit Community Cloud, siga o [guia de implantação](docs/arquitetura/deployStreamlitCloud.md). Ele registra o repositório, branch, arquivo principal, secrets, conexão Supabase e callback do Microsoft Entra necessários para este painel.
+
 A integração OIDC segue a [documentação oficial do Streamlit](https://docs.streamlit.io/develop/tutorials/authentication/microsoft). Use uma conexão de banco restrita ao servidor, com leitura de `metas_comerciais` e `app_vendedor_regiao_time` e acesso às novas tabelas. O script habilita RLS e remove acesso direto das funções `anon` e `authenticated` da API Supabase; a conexão privada precisa pertencer ao proprietário das tabelas ou a um papel de servidor autorizado a operar com RLS. Não disponibilize a credencial de banco ao navegador.
 
 **Situação local:** a visão geral, a tela de adiantamento, as regras de autorização e o SQL estão implementados. Não foram encontradas credenciais de login ou banco nesta pasta, portanto a migração não foi aplicada no Supabase e o login real ainda exige configuração. O aplicativo mostra uma mensagem de configuração pendente nesse estado.
