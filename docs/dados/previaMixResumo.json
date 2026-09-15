@@ -1,0 +1,26 @@
+{
+  "consultado_em_utc": "2026-09-10T18:34:02.431561+00:00",
+  "pedidos_linhas": 37,
+  "pedidos_distintos": 37,
+  "resultados": {
+    "excluido_ka": 21,
+    "linha_com_compra_anterior": 15,
+    "candidato_primeira_compra_linha": 1
+  },
+  "candidatos_por_linha": {
+    "Suporte de Bancada": 1
+  },
+  "candidatos_com_triangulacao": 0,
+  "candidatos_com_valor_ausente": 0,
+  "sem_calculo_minimos_ou_xp": true,
+  "avaliacao_posterior_mapeamento_times": {
+    "fonte": "timesSegmentos.csv confirmado pelo usuario; cadastro de vendedor da consulta original",
+    "nova_consulta_banco": false,
+    "resultados": {
+      "excluido_ka": 21,
+      "linha_com_compra_anterior": 15,
+      "abaixo_minimo_linha": 1
+    },
+    "xp_final_calculado": false
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "consultado_em_utc": "2026-09-10T19:16:12.655002+00:00",
+  "pedidos_grupos": 323,
+  "pedidos_distintos": 323,
+  "resultados_por_pedido": {
+    "ativo": 230,
+    "pendente_grupo_comercial": 76,
+    "novo_no_historico": 8,
+    "candidato_reativado": 6,
+    "pendente_segmento": 3
+  },
+  "grupos_distintos_por_resultado": {
+    "ativo": 90,
+    "candidato_reativado": 6,
+    "novo_no_historico": 7,
+    "pendente_grupo_comercial": 1,
+    "pendente_segmento": 2
+  },
+  "candidatos_com_empate_data": 2,
+  "candidatos_com_titularidade_pendente": 0,
+  "xp_concedido": false
+}

@@ -1,0 +1,74 @@
+# Estrutura e operação do painel
+
+**Confirmado pelo usuário:** o painel será desenvolvido em Streamlit. Este documento coleta preferências e restrições; não é necessário definir detalhes técnicos agora.
+
+**Primeira versão do painel implementada em 14/09/2026:** [visão geral e adiantamento manual por região](../../app.py), conforme solicitação do usuário. A interface usa o padrão visual do Gestão Comercial e o restante da apuração continua em preparação. Configuração, testes e situação de implantação estão no [README do projeto](../../README.md).
+
+## Entrada e atualização dos dados
+
+- Como deseja carregar dados: **confirmado pelo usuário**, leitura do Supabase, schema `comercial_marts`.
+- Fontes: vendas em `fct_pedido_item` e metas em `metas_comerciais`.
+- Elegibilidade financeira: fontes complementares identificadas no código local em 14/09/2026, `vw_clientes_inadimplentes` e `fct_faturamento_item`, para bloqueio por grupo com exceções SMART PODS/MRV e consideração somente da parte faturada de clientes bloqueados. Conferir as chaves e a disponibilidade no banco antes de integrar; contrato em [Elegibilidade de vendas](../dados/elegibilidadeVendas.md).
+- Cancelamentos: excluir o pedido inteiro da base analítica elegível e reconstruir realizado, histórico e XP como se ele nunca tivesse sido uma venda válida. Usar as exclusões lógicas e `is_item_valido_metricas` da fonte, mantendo o registro cancelado somente para auditoria.
+- Estorno fiscal: preservar o pedido ativo e sua competência original; um refaturamento atualiza a evidência fiscal sem criar outro evento de venda. Para a regra de inadimplência, somar somente itens de notas válidas na fotografia. Validar a detecção técnica do estorno, pois `stg_protheus__sf2` expõe `is_nota_excluida_logicamente`, enquanto `stg_protheus__sd2` filtra itens fiscais excluídos.
+- Atualização: reconstruir a apuração com a situação atual das fontes e aplicar mudanças retroativas nas competências originais, inclusive após fechamentos anteriores. Persistir fotografias datadas e motivos de alteração para auditoria, sem usá-las para congelar o resultado corrente. Manter o adiantamento manual fora desse recálculo automático.
+- Devoluções: fonte `fct_nota_devolucao`, com valor alocado por vendedor a partir da nota original. Incluir todas as devoluções no abatimento, sem aplicar filtro por setor responsável, motivo, tipo ou classificação; esses atributos servem somente para auditoria da campanha. Abater na competência de implantação do pedido e recalcular os XP, conforme confirmado. A saída observada não contém produto/item nem filial/pedido, por isso o vínculo à venda original precisa ser validado e o mix exige detalhe adicional.
+- Operações não comerciais: `fct_pedido_item` e `fct_faturamento_item` expõem `is_venda_comercial`, `is_remessa`, `is_transferencia` e `is_bonificacao` a partir da classificação CFOP. Excluir bonificações, remessas e transferências de mercadoria de vendas, histórico elegível e XP; manter `classe_operacao` e `cfop_classificacao` para auditoria.
+- Calendário do acompanhamento mensal: segunda a sexta, descontando feriados nacionais, conforme confirmado em 14/09/2026. Referência local em [Calendário da campanha](../dados/calendarioCampanha.md) e [feriadosNacionaisCampanha2026.csv](../dados/feriadosNacionaisCampanha2026.csv); recalcular a meta parcial e os XP de vendas para a data de referência, mesmo sem novas vendas.
+- Armazenamento principal: tabelas no Supabase. Necessidade de exportações ou cópias locais a definir.
+- Participação: derivar por competência de `metas_comerciais`, com `meta > 0` e `time` em `Canais`, `Time Norte` ou `Time Sul`. Não criar participantes a partir de vendedores ativos sem meta; relacionar os vendedores somente depois de definir as regiões elegíveis.
+- Ciclo do vendedor: não filtrar a apuração histórica pelo estado atual `ativo`. Admitidos e desligados mantêm as vendas e os XP elegíveis de seu período, sem proporcionalizar tetos ou metas pelo tempo de participação.
+- Adiantamento manual: tabelas `campanha_polar_adiantamento` e `campanha_polar_adiantamento_historico`, no schema `comercial_marts`, mantidas pelo aplicativo. Os três campos booleanos são a decisão final das contas autorizadas; não calcular datas de encerramento nem validar percentuais contra vendas. A tela lista somente regiões elegíveis pela meta da competência. [SQL de criação](../../sql/adiantamento_meta.sql) preparado; aplicação no banco depende da configuração do ambiente. Não reconstruir essas tabelas no dataflow.
+- Quem fará a atualização: [PREENCHER]
+- Frequência necessária: [PREENCHER]
+- É necessário guardar versões anteriores para conferência: [PREENCHER]
+- Volume observado em 09/09/2026: 125.056 linhas em `fct_pedido_item` e 502 em `metas_comerciais`, antes dos filtros da campanha.
+
+### Fluxo das fontes
+
+```mermaid
+flowchart TD
+    P[Protheus: pedidos e itens] --> R[comercial_raw]
+    R --> S[comercial_staging]
+    S --> I[comercial_intermediate: regras e valores]
+    I --> V[comercial_marts.fct_pedido_item]
+    G[Gestão Comercial: cadastro de metas] --> M[comercial_marts.metas_comerciais]
+    V --> E[Proposta: fct_campanha_polar_item]
+    E --> C[CampanhaPolar: painel Streamlit]
+    M --> C
+```
+
+O código do dataflow e do Gestão Comercial foi examinado; tabelas e disponibilidade foram conferidas por conexão PostgreSQL somente leitura em 09/09/2026. A conexão da tela de adiantamento foi implementada em 14/09/2026, mas ainda precisa das credenciais do ambiente. As demais integrações permanecem para as próximas etapas. Os contratos e pendências estão em [dadoVenda.md](../dados/dadoVenda.md) e [dadoMeta.md](../dados/dadoMeta.md).
+
+A [tabela derivada de enquadramento](../dados/dadoEnquadramento.md), proposta em 10/09/2026, usará o histórico completo para classificar os pedidos da campanha quanto a clientes novos, reativados e mix. Sua materialização no banco ainda não foi implementada.
+
+## Acesso e uso
+
+- Onde o painel será executado: computador local, servidor interno ou outro ambiente: [PREENCHER]
+- Número aproximado de usuários: [PREENCHER]
+- Login da tela de adiantamento: Microsoft OIDC no tenant da organização, seguindo o padrão do Gestão Comercial.
+- Permissões do adiantamento, confirmadas pelo usuário: `lais.vendrasco@ambar.tech` e `leonardo.watanabe@ambar.tech` editam e salvam; os demais usuários autenticados consultam. O servidor valida novamente a identidade e a permissão em cada gravação. Demais permissões do futuro painel a definir.
+- Uso principal em computador, celular ou ambos: [PREENCHER]
+- Há restrições para armazenamento ou exibição dos dados: [PREENCHER]
+
+## Organização das telas
+
+Descreva as telas desejadas em linguagem simples. Exemplos possíveis: visão geral, resultado individual, ranking e detalhamento dos pontos.
+
+| Tela desejada | O que deve mostrar | Quem pode acessar |
+| --- | --- | --- |
+| Visão geral | Meta mensal, regiões participantes, cobertura das três fases, XP regional de adiantamento e tabela por região | Usuários autenticados consultam |
+| Adiantamento de meta | Checks por região e mês para 32%, 56% e 80%, observações e últimas atualizações | Usuários autenticados consultam; somente `lais.vendrasco@ambar.tech` e `leonardo.watanabe@ambar.tech` salvam |
+
+## Identidade visual
+
+- Logo e imagens disponíveis na pasta assets: `assets/logo_polar_horizontal.png`, copiado da referência local do Gestão Comercial.
+- Cores e referências visuais: **confirmado pelo usuário em 14/09/2026**, seguir o padrão do Gestão Comercial: azul Polar `#0072D6`, azul escuro `#005DAD`, fundo branco, cartões com borda azul, cabeçalhos de tabela azuis, texto principal `#17233A` e fundo secundário `#F4F8FC`.
+- Nome exibido: `Campanha Polar`; páginas iniciais `Visão geral` e `Adiantamento de meta`.
+
+## Operação e manutenção
+
+- Quem será responsável pelo painel depois de pronto: [PREENCHER]
+- Como o usuário deve perceber erro de carga ou dados desatualizados: [PREENCHER]
+- Outros sistemas com que o painel precisa se integrar: [PREENCHER]
+- Outras restrições ou preferências: [PREENCHER]
