@@ -132,6 +132,7 @@ declare
     v_regiao text;
     v_observacao text;
     v_versao_enviada integer;
+    v_versao_atual integer;
     v_anterior comercial_marts.campanha_polar_adiantamento%rowtype;
     v_existe boolean;
     v_valores_anteriores jsonb;
@@ -213,7 +214,13 @@ begin
         for update;
         v_existe := found;
 
-        if v_versao_enviada <> case when v_existe then v_anterior.versao else 0 end then
+        if v_existe then
+            v_versao_atual := v_anterior.versao;
+        else
+            v_versao_atual := 0;
+        end if;
+
+        if v_versao_enviada <> v_versao_atual then
             raise exception 'CONCURRENT_CHANGE' using errcode = '40001';
         end if;
 
