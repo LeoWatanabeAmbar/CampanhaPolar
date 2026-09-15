@@ -42,6 +42,7 @@ POLAR_BLUE_SOFT = "#E8F3FC"
 POLAR_INK = "#17233A"
 POLAR_BORDER = "#DCE8F4"
 LOGO_PATH = Path(__file__).resolve().parent / "assets" / "logo_polar_horizontal.png"
+PAGE_ICON_PATH = Path(__file__).resolve().parent / "assets" / "icone_polar.png"
 
 
 def apply_polar_style():
@@ -815,7 +816,7 @@ def render_advancement(
 
 def main():
     """Inicializa identidade visual, autenticação e navegação do painel."""
-    page_icon = str(LOGO_PATH) if LOGO_PATH.is_file() else "❄️"
+    page_icon = str(PAGE_ICON_PATH) if PAGE_ICON_PATH.is_file() else "❄️"
     st.set_page_config(page_title="Campanha Polar", page_icon=page_icon, layout="wide")
     if LOGO_PATH.is_file():
         st.logo(str(LOGO_PATH), size="large")
