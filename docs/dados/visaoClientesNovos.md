@@ -4,12 +4,15 @@
 
 ## Conteúdo da página
 
+- tabela inicial por região com quantidade de clientes novos, lista dos grupos comerciais e XP total atribuído à região;
 - indicadores de grupos novos, pedidos reunidos no primeiro evento, valor líquido elegível e XP bruto confirmado;
 - filtros por região, situação da atribuição e busca por grupo, pedido ou vendedor;
 - detalhe da primeira compra, grupo comercial, pedidos, vendedores, regiões, segmento, valor e XP;
 - sinalização dos casos em que a atribuição ainda está pendente.
 
 Pedidos do mesmo grupo comercial na mesma data formam um único evento. Um evento confirmado gera 10 XP brutos de cliente novo. Com um vendedor identificado, ele recebe 10 XP; com exatamente dois vendedores válidos, cada um recebe 5 XP. A página informa o valor anterior ao teto individual acumulado de 100 XP, cuja consolidação será feita na apuração completa da campanha.
+
+No resumo regional, cada grupo comercial é contado uma vez em cada região participante. Quando o evento reúne duas regiões, cada região recebe 5 XP; se os dois vendedores pertencem à mesma região, ela recebe os 10 XP integrais. Eventos pendentes aparecem na lista e na quantidade, mas somam zero XP.
 
 ## Consulta e regras aplicadas
 

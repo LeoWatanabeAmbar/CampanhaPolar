@@ -195,6 +195,49 @@ def build_overview_frame(rows: list[dict], goals: list[dict]) -> pd.DataFrame:
     return pd.DataFrame(records)
 
 
+def build_new_customers_region_summary(frame: pd.DataFrame) -> pd.DataFrame:
+    """Resume clientes novos e distribui o XP do evento entre suas regiões."""
+    records = []
+    for row in frame.to_dict("records"):
+        regions = sorted({
+            region.strip()
+            for region in str(row["regioes"]).split(" · ")
+            if region.strip()
+        })
+        if not regions:
+            continue
+        xp_per_region = float(row["xp_evento"]) / len(regions)
+        for region in regions:
+            records.append({
+                "regiao": region,
+                "grupo_comercial_id": row["grupo_comercial_id"],
+                "nome_grupo_comercial": row["nome_grupo_comercial"],
+                "xp_regiao": xp_per_region,
+            })
+
+    if not records:
+        return pd.DataFrame(columns=[
+            "Região", "Quantidade de clientes novos", "Lista dos clientes novos", "Total XP",
+        ])
+
+    summary = []
+    regional = pd.DataFrame(records)
+    for region, rows in regional.groupby("regiao", sort=True):
+        clients = {
+            row["grupo_comercial_id"]: row["nome_grupo_comercial"]
+            for row in rows.to_dict("records")
+        }
+        summary.append({
+            "Região": region,
+            "Quantidade de clientes novos": len(clients),
+            "Lista dos clientes novos": " · ".join(
+                sorted(clients.values(), key=str.casefold)
+            ),
+            "Total XP": float(rows["xp_regiao"].sum()),
+        })
+    return pd.DataFrame(summary)
+
+
 def configuration():
     """Lê a configuração pública necessária para Auth e Data API."""
     try:
@@ -355,6 +398,24 @@ def render_new_customers(repository: NewCustomersRepository):
         return
 
     frame = pd.DataFrame(rows)
+    st.subheader("Resumo por região")
+    st.caption(
+        "Cada grupo comercial é contado uma vez em cada região participante. Em eventos com "
+        "duas regiões, o XP é dividido entre elas."
+    )
+    st.dataframe(
+        build_new_customers_region_summary(frame),
+        column_config={
+            "Quantidade de clientes novos": st.column_config.NumberColumn(
+                "Quantidade de clientes novos", format="%d"
+            ),
+            "Total XP": st.column_config.NumberColumn("Total XP", format="%.0f XP"),
+        },
+        hide_index=True,
+        width="stretch",
+    )
+
+    st.subheader("Detalhamento dos clientes")
     region_names = sorted({
         region.strip()
         for value in frame["regioes"]

@@ -138,4 +138,25 @@ def test_page_renders_metrics_pending_warning_and_table():
     assert app.metric[0].value == "3"
     assert app.metric[3].value == "20 XP"
     assert len(app.warning) == 1
-    assert len(app.dataframe) == 1
+    assert len(app.dataframe) == 2
+    assert list(app.dataframe[0].value.columns) == [
+        "Região",
+        "Quantidade de clientes novos",
+        "Lista dos clientes novos",
+        "Total XP",
+    ]
+
+
+def test_region_summary_counts_clients_and_allocates_event_xp():
+    import pandas as pd
+
+    from app import build_new_customers_region_summary
+
+    summary = build_new_customers_region_summary(pd.DataFrame(sample_rows())).set_index("Região")
+
+    assert summary.loc["SUL 01", "Quantidade de clientes novos"] == 1
+    assert summary.loc["SUL 01", "Total XP"] == pytest.approx(10)
+    assert summary.loc["NORTE 01", "Quantidade de clientes novos"] == 2
+    assert summary.loc["NORTE 01", "Total XP"] == pytest.approx(5)
+    assert summary.loc["NORTE 02", "Quantidade de clientes novos"] == 1
+    assert summary.loc["NORTE 02", "Total XP"] == pytest.approx(5)
