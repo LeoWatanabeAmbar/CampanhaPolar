@@ -95,6 +95,12 @@ def test_repository_rejects_invalid_month_before_rpc():
     assert client.calls == []
 
 
+def test_repository_loads_whole_campaign_without_competence_filter():
+    client = FakeClient(sample_rows())
+    NewCustomersRepository(client).load()
+    assert client.calls == [(LOAD_FUNCTION, {"p_competencia": None})]
+
+
 def test_sql_applies_confirmed_new_customer_rules():
     sql = Path("sql/clientes_novos.sql").read_text(encoding="utf-8").lower()
     assert "security definer" in sql
@@ -111,14 +117,13 @@ def test_sql_applies_confirmed_new_customer_rules():
 
 def page_runner():
     import streamlit as st
-    from datetime import date
     from app import render_new_customers
 
-    render_new_customers(st.session_state["repo"], date(2026, 9, 1))
+    render_new_customers(st.session_state["repo"])
 
 
 def test_page_renders_metrics_pending_warning_and_table():
-    repository = SimpleNamespace(load=lambda month: sample_rows())
+    repository = SimpleNamespace(load=lambda: sample_rows())
     app = AppTest.from_function(page_runner)
     app.session_state["repo"] = repository
     app.run(timeout=15)

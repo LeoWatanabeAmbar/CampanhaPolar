@@ -12,6 +12,8 @@ EDITOR_EMAILS = ("lais.vendrasco@ambar.tech", "leonardo.watanabe@ambar.tech")
 FIELDS = ("semana_1_32", "semana_2_56", "semana_3_80")
 LOAD_FUNCTION = "campanha_polar_carregar_adiantamento"
 SAVE_FUNCTION = "campanha_polar_salvar_adiantamento"
+SAVE_CAMPAIGN_FUNCTION = "campanha_polar_salvar_adiantamento_campanha"
+CAMPAIGN_MONTHS = tuple(date(2026, month, 1) for month in (9, 10, 11, 12))
 
 
 class PermissionDenied(ValueError):
@@ -126,11 +128,12 @@ class Repository:
             records.append(row)
         return records
 
-    def save(self, month: date, rows: list[dict], identity: Identity):
-        """Valida o formato localmente; o banco valida novamente identidade e dados."""
-        if not identity.can_edit:
-            raise PermissionDenied(f"Somente {' e '.join(EDITOR_EMAILS)} podem salvar alterações.")
-        validate_month(month)
+    def load_campaign(self) -> dict[date, list[dict]]:
+        """Carrega as quatro competências para as visões consolidadas."""
+        return {month: self.load(month) for month in CAMPAIGN_MONTHS}
+
+    @staticmethod
+    def _validate_rows(rows: list[dict]) -> list[dict]:
         seen: set[str] = set()
         payload = []
         for row in rows:
@@ -150,11 +153,47 @@ class Repository:
                 "observacao": row["observacao"],
                 "versao": row["versao"],
             })
+        return payload
+
+    def save(self, month: date, rows: list[dict], identity: Identity):
+        """Valida o formato localmente; o banco valida novamente identidade e dados."""
+        if not identity.can_edit:
+            raise PermissionDenied(f"Somente {' e '.join(EDITOR_EMAILS)} podem salvar alterações.")
+        validate_month(month)
+        payload = self._validate_rows(rows)
 
         data = self._rpc(SAVE_FUNCTION, {
             "p_competencia": month.isoformat(),
             "p_registros": payload,
         })
+        try:
+            return int(data or 0)
+        except (TypeError, ValueError) as error:
+            raise DataAccessError("A Data API não confirmou o salvamento.") from error
+
+    def save_campaign(self, records: list[dict], identity: Identity) -> int:
+        """Salva todas as competências em uma única transação no Supabase."""
+        if not identity.can_edit:
+            raise PermissionDenied(f"Somente {' e '.join(EDITOR_EMAILS)} podem salvar alterações.")
+        grouped: dict[date, list[dict]] = {}
+        seen: set[tuple[date, str]] = set()
+        for record in records:
+            month = record.get("competencia")
+            if not isinstance(month, date):
+                raise ValueError("Competência inválida. Recarregue os dados.")
+            validate_month(month)
+            region = record.get("regiao")
+            key = (month, str(region))
+            if key in seen:
+                raise ValueError("A lista de regiões foi alterada. Recarregue os dados.")
+            seen.add(key)
+            grouped.setdefault(month, []).append(record)
+
+        payload = []
+        for month, rows in grouped.items():
+            for row in self._validate_rows(rows):
+                payload.append({"competencia": month.isoformat(), **row})
+        data = self._rpc(SAVE_CAMPAIGN_FUNCTION, {"p_registros": payload})
         try:
             return int(data or 0)
         except (TypeError, ValueError) as error:

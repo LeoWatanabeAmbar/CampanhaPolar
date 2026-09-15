@@ -8,7 +8,9 @@ from postgrest.exceptions import APIError
 from streamlit.testing.v1 import AppTest
 
 from polar.adiantamento import (
+    CAMPAIGN_MONTHS,
     LOAD_FUNCTION,
+    SAVE_CAMPAIGN_FUNCTION,
     SAVE_FUNCTION,
     ConcurrentChange,
     Identity,
@@ -34,7 +36,7 @@ class FakeRequest:
 
 
 class FakeDataApi:
-    """Simula somente o contrato das duas funções SQL usadas pelo painel."""
+    """Simula o contrato das funções SQL usadas pelo painel."""
 
     def __init__(self):
         self.goals = {
@@ -56,6 +58,8 @@ class FakeDataApi:
             return self._load(parameters["p_competencia"])
         if function == SAVE_FUNCTION:
             return self._save(parameters["p_competencia"], parameters["p_registros"])
+        if function == SAVE_CAMPAIGN_FUNCTION:
+            return self._save_campaign(parameters["p_registros"])
         raise AssertionError(f"RPC inesperada: {function}")
 
     def _load(self, month):
@@ -104,6 +108,24 @@ class FakeDataApi:
             changed += 1
         self.state = staged_state
         self.history = staged_history
+        return changed
+
+    def _save_campaign(self, records):
+        previous_state = deepcopy(self.state)
+        previous_history = deepcopy(self.history)
+        changed = 0
+        try:
+            for month in sorted({record["competencia"] for record in records}):
+                rows = [
+                    {key: value for key, value in record.items() if key != "competencia"}
+                    for record in records
+                    if record["competencia"] == month
+                ]
+                changed += self._save(month, rows)
+        except Exception:
+            self.state = previous_state
+            self.history = previous_history
+            raise
         return changed
 
 
@@ -190,6 +212,22 @@ def test_duplicate_region_and_invalid_month_are_rejected(repository):
         repository.save(date(2026, 8, 1), [blank_record("REG 01")], EDITOR)
 
 
+def test_campaign_save_uses_one_rpc_for_all_months(repository, api):
+    october = date(2026, 10, 1)
+    api.goals[october.isoformat()] = [
+        {"regiao": "REG 01", "time": "Time Norte", "meta": 110_000},
+    ]
+    records = [
+        {"competencia": MONTH, **dict(blank_record("REG 01"), semana_1_32=True)},
+        {"competencia": october, **dict(blank_record("REG 01"), semana_2_56=True)},
+    ]
+
+    assert repository.save_campaign(records, EDITOR) == 2
+    assert api.calls[-1][0] == SAVE_CAMPAIGN_FUNCTION
+    assert repository.load(MONTH)[0]["semana_1_32"] is True
+    assert repository.load(october)[0]["semana_2_56"] is True
+
+
 def test_region_without_goal_is_rejected_by_server(repository):
     with pytest.raises(ValueError):
         repository.save(MONTH, [blank_record("REG INVÁLIDA")], EDITOR)
@@ -197,10 +235,11 @@ def test_region_without_goal_is_rejected_by_server(repository):
 
 def test_sql_secures_rpc_and_filters_goal_regions():
     sql = Path("sql/adiantamento_meta.sql").read_text(encoding="utf-8").lower()
-    assert sql.count("security definer") == 2
-    assert sql.count("set search_path = ''") == 2
+    assert sql.count("security definer") == 3
+    assert sql.count("set search_path = ''") == 3
     assert "grant execute on function public.campanha_polar_carregar_adiantamento(date) to authenticated" in sql
     assert "grant execute on function public.campanha_polar_salvar_adiantamento(date, jsonb) to authenticated" in sql
+    assert "grant execute on function public.campanha_polar_salvar_adiantamento_campanha(jsonb) to authenticated" in sql
     assert "from public, anon" in sql
     assert "upper(trim(m.time)) in ('canais', 'time norte', 'time sul')" in sql
     assert "(select auth.jwt()) ->> 'email'" in sql
@@ -228,11 +267,9 @@ def test_overview_combines_goals_checks_and_regional_xp():
 
 def ui_runner():
     import streamlit as st
-    from datetime import date
     from app import render_table
     render_table(
         st.session_state["repo"],
-        date(2026, 9, 1),
         st.session_state["actor"],
         lambda: (st.session_state["current_actor"], None),
     )
@@ -240,9 +277,8 @@ def ui_runner():
 
 def overview_ui_runner():
     import streamlit as st
-    from datetime import date
     from app import render_overview
-    render_overview(st.session_state["repo"], date(2026, 9, 1))
+    render_overview(st.session_state["repo"])
 
 
 def make_ui(repository, actor):
@@ -271,7 +307,7 @@ def test_overview_ui_renders_metrics_progress_and_region_table(repository):
 
     assert not app.exception
     assert [metric.label for metric in app.metric] == [
-        "Meta do mês", "Regiões participantes", "Fases confirmadas", "XP de adiantamento",
+        "Metas publicadas", "Regiões participantes", "Fases confirmadas", "XP de adiantamento",
     ]
     assert app.metric[3].value == "10 XP"
     assert len(app.dataframe) == 1
@@ -281,9 +317,9 @@ def test_overview_ui_renders_metrics_progress_and_region_table(repository):
 def test_editor_saves_form_and_reader_can_load_same_records(repository, editor):
     app = make_ui(repository, editor)
     assert not app.exception
-    key = f"advance_editor:{MONTH.isoformat()}:{editor.user_id}:1"
+    key = f"advance_editor:campaign:{editor.user_id}:1"
     app.session_state[key] = {
-        "edited_rows": {0: {"semana_1_32": True}},
+        "edited_rows": {0: {"m09_semana_1_32": True}},
         "added_rows": [],
         "deleted_rows": [],
     }
@@ -292,7 +328,28 @@ def test_editor_saves_form_and_reader_can_load_same_records(repository, editor):
     assert repository.load(MONTH)[0]["semana_1_32"] is True
     viewer = make_ui(repository, READER)
     assert not viewer.exception
-    assert bool(viewer.dataframe[0].value.iloc[0]["semana_1_32"])
+    assert bool(viewer.dataframe[0].value.iloc[0]["m09_semana_1_32"])
+
+
+def test_advance_table_has_all_campaign_columns(repository):
+    from app import advance_label, build_advancement_frame
+
+    columns = list(build_advancement_frame(repository.load_campaign()).columns)
+    assert columns == [
+        "regiao",
+        *[
+            f"m{month.month:02d}_{field}"
+            for month in CAMPAIGN_MONTHS
+            for field in ("semana_1_32", "semana_2_56", "semana_3_80")
+        ],
+    ]
+    assert [advance_label(MONTH, field) for field in (
+        "semana_1_32", "semana_2_56", "semana_3_80",
+    )] == [
+        "Set | 1ª semana - 32%",
+        "Set | 2ª semana - 56%",
+        "Set | 3ª semana - 80%",
+    ]
 
 
 def test_app_without_configuration_shows_setup_message():

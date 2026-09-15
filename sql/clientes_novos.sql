@@ -26,10 +26,11 @@ begin
     if (select auth.uid()) is null then
         raise exception 'AUTH_REQUIRED' using errcode = '42501';
     end if;
-    if p_competencia is null
-       or p_competencia <> date_trunc('month', p_competencia)::date
+    if p_competencia is not null and (
+       p_competencia <> date_trunc('month', p_competencia)::date
        or extract(year from p_competencia) <> 2026
-       or extract(month from p_competencia) not in (9, 10, 11, 12) then
+       or extract(month from p_competencia) not in (9, 10, 11, 12)
+    ) then
         raise exception 'INVALID_MONTH' using errcode = '22023';
     end if;
 
@@ -218,7 +219,7 @@ begin
             exists (
                 select 1
                 from comercial_marts.metas_comerciais as m
-                where m.data = p_competencia
+                where m.data = date_trunc('month', v.data_emissao)::date
                   and m.meta > 0
                   and trim(m.regiao) = vd.regiao
                   and upper(trim(m.time)) in ('CANAIS', 'TIME NORTE', 'TIME SUL')
@@ -268,8 +269,15 @@ begin
         inner join grupos_dim as g on g.grupo_comercial_id = e.grupo_comercial_id
         left join grupos_com_data_pendente as dp on dp.grupo_comercial_id = e.grupo_comercial_id
         left join grupos_com_devolucao_pendente as dv on dv.grupo_comercial_id = e.grupo_comercial_id
-        where e.data_emissao >= p_competencia
-          and e.data_emissao < (p_competencia + interval '1 month')::date
+        where e.data_emissao >= date '2026-09-01'
+          and e.data_emissao < date '2027-01-01'
+          and (
+              p_competencia is null
+              or (
+                  e.data_emissao >= p_competencia
+                  and e.data_emissao < (p_competencia + interval '1 month')::date
+              )
+          )
           and e.tem_regiao_participante
           and dp.grupo_comercial_id is null
           and dv.grupo_comercial_id is null

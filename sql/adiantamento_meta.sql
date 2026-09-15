@@ -286,9 +286,71 @@ exception
 end;
 $$;
 
+create or replace function public.campanha_polar_salvar_adiantamento_campanha(
+    p_registros jsonb
+)
+returns integer
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+    v_competencia_texto text;
+    v_registros_mes jsonb;
+    v_alterados_mes integer;
+    v_alterados_total integer := 0;
+begin
+    if (select auth.uid()) is null then
+        raise exception 'AUTH_REQUIRED' using errcode = '42501';
+    end if;
+    if jsonb_typeof(p_registros) is distinct from 'array' then
+        raise exception 'INVALID_ROWS' using errcode = '22023';
+    end if;
+    if exists (
+        select 1
+        from jsonb_array_elements(p_registros) as elemento(valor)
+        where jsonb_typeof(elemento.valor -> 'competencia') is distinct from 'string'
+           or elemento.valor ->> 'competencia' not in (
+                '2026-09-01', '2026-10-01', '2026-11-01', '2026-12-01'
+           )
+    ) then
+        raise exception 'INVALID_MONTH' using errcode = '22023';
+    end if;
+    if exists (
+        select 1
+        from jsonb_array_elements(p_registros) as elemento(valor)
+        group by elemento.valor ->> 'competencia', elemento.valor ->> 'regiao'
+        having count(*) > 1
+    ) then
+        raise exception 'INVALID_DUPLICATE_REGION' using errcode = '22023';
+    end if;
+
+    for v_competencia_texto in
+        select distinct elemento.valor ->> 'competencia'
+        from jsonb_array_elements(p_registros) as elemento(valor)
+        order by 1
+    loop
+        select coalesce(jsonb_agg(elemento.valor - 'competencia'), '[]'::jsonb)
+        into v_registros_mes
+        from jsonb_array_elements(p_registros) as elemento(valor)
+        where elemento.valor ->> 'competencia' = v_competencia_texto;
+
+        select public.campanha_polar_salvar_adiantamento(
+            v_competencia_texto::date,
+            v_registros_mes
+        ) into v_alterados_mes;
+        v_alterados_total := v_alterados_total + coalesce(v_alterados_mes, 0);
+    end loop;
+
+    return v_alterados_total;
+end;
+$$;
+
 revoke all privileges on function public.campanha_polar_carregar_adiantamento(date) from public, anon;
 revoke all privileges on function public.campanha_polar_salvar_adiantamento(date, jsonb) from public, anon;
+revoke all privileges on function public.campanha_polar_salvar_adiantamento_campanha(jsonb) from public, anon;
 grant execute on function public.campanha_polar_carregar_adiantamento(date) to authenticated;
 grant execute on function public.campanha_polar_salvar_adiantamento(date, jsonb) to authenticated;
+grant execute on function public.campanha_polar_salvar_adiantamento_campanha(jsonb) to authenticated;
 
 commit;

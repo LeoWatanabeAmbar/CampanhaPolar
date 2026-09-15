@@ -6,18 +6,18 @@ Nesta campanha, o adiantamento mencionado pelo usuário corresponde às fases do
 
 ## Tela e acesso
 
-A primeira tela está implementada em [app.py](../../app.py). Ela apresenta uma tabela por competência, de setembro a dezembro de 2026:
+A tela está implementada em [app.py](../../app.py). Ela não possui filtro de competência: apresenta uma tabela única, com uma linha por região e os 12 checks de setembro a dezembro de 2026:
 
-| Região | 1ª semana · 32% | 2ª semana · 56% | 3ª semana · 80% | Observações |
-| --- | --- | --- | --- | --- |
-| Região fictícia A | Marcado | Marcado | Desmarcado | Exemplo fictício de conferência |
-| Região fictícia B | Marcado | Desmarcado | Desmarcado | Exemplo fictício |
+| Região | Set \| 1ª semana - 32% | Set \| 2ª semana - 56% | Set \| 3ª semana - 80% | Out \| 1ª semana - 32% | … | Dez \| 3ª semana - 80% |
+| --- | --- | --- | --- | --- | --- | --- |
+| Região fictícia A | Marcado | Marcado | Desmarcado | Desmarcado | … | Desmarcado |
+| Região fictícia B | Marcado | Desmarcado | Desmarcado | Desmarcado | … | Desmarcado |
 
 - **Somente `lais.vendrasco@ambar.tech` e `leonardo.watanabe@ambar.tech` podem preencher e salvar.** A identificação vem da sessão revalidada no Supabase Authentication.
 - Os demais usuários válidos cadastrados em `auth.users` visualizam os registros e suas últimas atualizações, sem edição.
 - A autorização é verificada pela função SQL em cada gravação, usando e-mail e ID extraídos do JWT; esconder o botão não é o único controle.
-- O botão **Salvar alterações** grava os checks e observações pela Data API do Supabase. Cada competência tem registros próprios.
-- **Participação confirmada pelo usuário em 14/09/2026:** as linhas vêm somente das regiões de Canais e Construção com meta positiva na competência selecionada. O cadastro de vendedores ativos e registros antigos não criam linhas sem meta. Um mês futuro fica sem regiões até suas metas serem publicadas; depois da publicação, a tela passa a exibi-las pela situação atual.
+- O botão **Salvar alterações** grava os checks das quatro competências pela Data API do Supabase em uma única transação. O modelo do banco continua mantendo registros mensais independentes.
+- **Participação confirmada pelo usuário em 14/09/2026:** as linhas reúnem as regiões de Canais e Construção com meta positiva em pelo menos uma competência. Cada grupo de três colunas só é gravado para as regiões com meta naquele mês. Quando nenhuma meta do mês estiver publicada, suas três colunas ficam desabilitadas.
 - Uma única linha representa uma região no mês, mesmo que nela apareçam dois vendedores.
 
 ## Interpretação dos checks
@@ -41,7 +41,7 @@ Tabela: `comercial_marts.campanha_polar_adiantamento`. Chave: `competencia` + `r
 | `competencia` | date | Primeiro dia do mês, de setembro a dezembro de 2026 |
 | `regiao` | text | Região comercial; não depende do vendedor individual |
 | `semana_1_32`, `semana_2_56`, `semana_3_80` | boolean | Checks manuais, inicialmente desmarcados |
-| `observacao` | text | Considerações de quem preencheu; até 2.000 caracteres |
+| `observacao` | text | Campo preservado no banco para compatibilidade e histórico; não aparece na tabela consolidada atual |
 | `versao` | integer | Controle de concorrência; impede sobrescrever uma versão que mudou |
 | `atualizado_em` | timestamptz | Horário de gravação; exibição no fuso de São Paulo |
 | `atualizado_por` | text | E-mail obtido da sessão autenticada |
@@ -51,7 +51,7 @@ O histórico fica em `comercial_marts.campanha_polar_adiantamento_historico`, re
 
 Essas tabelas pertencem ao aplicativo, não ao processamento que reconstrói os fatos de vendas. Não devem ser sobrescritas pelo dataflow.
 
-O Streamlit não abre uma conexão PostgreSQL. Depois do login, ele usa a chave publicável e o JWT da sessão para chamar `public.campanha_polar_carregar_adiantamento` e `public.campanha_polar_salvar_adiantamento`. As tabelas não concedem acesso direto aos papéis `anon` ou `authenticated`; as funções `security definer`, com `search_path` vazio e objetos totalmente qualificados, limitam o acesso às operações do painel. A função de salvamento faz toda a validação e a gravação do lote na mesma transação.
+O Streamlit não abre uma conexão PostgreSQL. Depois do login, ele usa a chave publicável e o JWT da sessão para chamar `public.campanha_polar_carregar_adiantamento` e `public.campanha_polar_salvar_adiantamento_campanha`. As tabelas não concedem acesso direto aos papéis `anon` ou `authenticated`; as funções `security definer`, com `search_path` vazio e objetos totalmente qualificados, limitam o acesso às operações do painel. A função consolidada chama o salvamento mensal dentro da mesma transação, portanto um conflito em qualquer mês reverte o envio inteiro.
 
 ## Relação com XP
 

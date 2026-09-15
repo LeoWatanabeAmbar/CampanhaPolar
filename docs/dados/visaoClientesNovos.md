@@ -1,6 +1,6 @@
 # Visão de clientes novos
 
-**Implementada em 15/09/2026:** a página **Clientes novos** consulta a situação atual do Supabase por competência e mostra os grupos comerciais cuja primeira compra elegível foi encontrada no histórico disponível desde janeiro de 2022.
+**Implementada em 15/09/2026:** a página **Clientes novos** consulta a situação atual do Supabase para toda a campanha e mostra os grupos comerciais cuja primeira compra elegível foi encontrada no histórico disponível desde janeiro de 2022. A competência aparece na tabela, sem filtro global na navegação.
 
 ## Conteúdo da página
 

@@ -57,9 +57,9 @@ Descreva as telas desejadas em linguagem simples. Exemplos possíveis: visão ge
 
 | Tela desejada | O que deve mostrar | Quem pode acessar |
 | --- | --- | --- |
-| Visão geral | Meta mensal, regiões participantes, cobertura das três fases, XP regional de adiantamento e tabela por região | Usuários autenticados consultam |
-| Clientes novos | Primeira compra elegível por grupo, pedidos consolidados no dia, responsáveis, regiões, valor líquido, atribuição e XP bruto | Usuários autenticados consultam |
-| Adiantamento de meta | Checks por região e mês para 32%, 56% e 80%, observações e últimas atualizações | Usuários autenticados consultam; somente `lais.vendrasco@ambar.tech` e `leonardo.watanabe@ambar.tech` salvam |
+| Visão geral | Metas publicadas, regiões participantes, cobertura das fases e XP regional de adiantamento em toda a campanha | Usuários autenticados consultam |
+| Clientes novos | Primeira compra elegível por grupo em toda a campanha, pedidos consolidados no dia, responsáveis, regiões, valor líquido, atribuição e XP bruto | Usuários autenticados consultam |
+| Adiantamento de meta | Uma linha por região e 12 checks: três fases para cada mês de setembro a dezembro | Usuários autenticados consultam; somente `lais.vendrasco@ambar.tech` e `leonardo.watanabe@ambar.tech` salvam |
 
 ## Identidade visual
 

@@ -4,7 +4,7 @@ Painel implementado no padrão visual do Gestão Comercial, com navegação late
 
 - **Visão geral:** meta total do mês, regiões participantes, fases confirmadas, XP regional de adiantamento, cobertura por fase e detalhamento regional.
 - **Clientes novos:** primeiros eventos elegíveis por grupo comercial, pedidos, vendedores, regiões, valor líquido e XP bruto do evento.
-- **Adiantamento de meta:** uma linha por região e mês, com checks independentes para 32% na primeira semana, 56% na segunda e 80% na terceira.
+- **Adiantamento de meta:** uma linha por região e 12 checks, com as três fases de setembro, outubro, novembro e dezembro na mesma tabela.
 
 O login usa e-mail e senha do Supabase Authentication. Qualquer conta válida cadastrada em `auth.users` pode consultar o painel. Somente `lais.vendrasco@ambar.tech` e `leonardo.watanabe@ambar.tech` podem preencher e salvar. A sessão é revalidada no Supabase e o mesmo JWT acessa funções restritas da Data API.
 
@@ -23,9 +23,9 @@ O Supabase Authentication recebe e-mail e senha e devolve os tokens da sessão; 
 
 ## Preenchimento
 
-- Escolha setembro, outubro, novembro ou dezembro de 2026. A tabela reúne regiões do cadastro ativo, metas do mês e registros já salvos.
+- A navegação não possui filtro de competência. A visão geral e os clientes novos abrangem toda a campanha; o adiantamento reúne setembro a dezembro na mesma tabela.
 - Marque cada fase após a conferência manual de suas condições. As fases são independentes; marcar 80% não marca automaticamente 32% ou 56%.
-- Use observações para registrar considerações da apuração e clique em **Salvar alterações**. A gravação é transacional: se houver conflito com outra sessão, nenhuma linha do envio é aplicada.
+- Clique em **Salvar alterações** para gravar todos os meses em uma única transação. Se houver conflito com outra sessão, nenhuma linha do envio é aplicada.
 - O histórico conserva os valores anteriores, os novos valores, a conta autenticada e a data/hora. É possível desmarcar um check como correção, preservando essa alteração no histórico.
 - Um check desmarcado significa atingimento não confirmado. A coluna de atualizações distingue linhas já salvas de regiões sem registro.
 - A tabela não consulta valores de venda para marcar fases nem impõe datas de bloqueio. A avaliação de atingimento dentro das semanas fica com a responsável, conforme solicitado.

@@ -18,12 +18,13 @@ class NewCustomersRepository:
     def __init__(self, client: Any):
         self.client = client
 
-    def load(self, month: date) -> list[dict]:
-        validate_month(month)
+    def load(self, month: date | None = None) -> list[dict]:
+        if month is not None:
+            validate_month(month)
         try:
             data = self.client.rpc(
                 LOAD_FUNCTION,
-                {"p_competencia": month.isoformat()},
+                {"p_competencia": month.isoformat() if month else None},
             ).execute().data
         except APIError as error:
             error_text = " ".join((

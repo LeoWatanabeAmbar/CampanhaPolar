@@ -21,6 +21,12 @@ from polar.adiantamento import (
 from polar.clientes_novos import NewCustomersRepository
 
 MONTHS = {9: "Setembro", 10: "Outubro", 11: "Novembro", 12: "Dezembro"}
+MONTH_ABBREVIATIONS = {9: "Set", 10: "Out", 11: "Nov", 12: "Dez"}
+ADVANCE_SUFFIXES = {
+    "semana_1_32": "1ª semana - 32%",
+    "semana_2_56": "2ª semana - 56%",
+    "semana_3_80": "3ª semana - 80%",
+}
 LABELS = {
     "regiao": "Região",
     "semana_1_32": "1ª semana · 32%",
@@ -247,7 +253,7 @@ def render_login(authenticator: SupabaseAuthenticator):
 
 
 def render_sidebar(identity: Identity, authenticator: SupabaseAuthenticator):
-    """Renderiza navegação, competência e conta conectada."""
+    """Renderiza navegação e conta conectada."""
     with st.sidebar:
         st.caption("NAVEGAÇÃO")
         page = st.radio(
@@ -255,8 +261,6 @@ def render_sidebar(identity: Identity, authenticator: SupabaseAuthenticator):
             ("Visão geral", "Clientes novos", "Adiantamento de meta"),
             label_visibility="collapsed",
         )
-        st.divider()
-        month_number = st.selectbox("Competência", list(MONTHS), format_func=MONTHS.get)
         st.divider()
         st.caption("Usuário conectado")
         st.write(identity.email)
@@ -270,27 +274,34 @@ def render_sidebar(identity: Identity, authenticator: SupabaseAuthenticator):
                 pass
             st.session_state.clear()
             st.rerun()
-    return page, date(2026, month_number, 1)
+    return page
 
 
-def render_overview(repository: Repository, month: date):
-    """Exibe a primeira visão executiva com dados já homologados."""
+def render_overview(repository: Repository):
+    """Exibe a visão executiva consolidada das competências com metas publicadas."""
     render_page_header(
         "Visão geral",
-        "Acompanhe metas regionais, fases confirmadas e XP de adiantamento.",
-        month,
+        "Acompanhe metas regionais, fases confirmadas e XP de adiantamento na campanha.",
     )
-    rows = repository.load(month)
-    frame = build_overview_frame(rows, rows)
+    rows = []
+    frames = []
+    for month, month_rows in repository.load_campaign().items():
+        if not month_rows:
+            continue
+        rows.extend(month_rows)
+        month_frame = build_overview_frame(month_rows, month_rows)
+        month_frame.insert(0, "Competência", MONTHS[month.month])
+        frames.append(month_frame)
+    frame = pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
     if frame.empty:
-        st.info("Nenhuma região com meta positiva está disponível para esta competência.")
+        st.info("Nenhuma região com meta positiva está disponível para a campanha.")
         return
 
     checked = int(frame["Fases"].sum())
     total_phases = len(frame) * len(FIELDS)
     metric_goal, metric_regions, metric_phases, metric_xp = st.columns(4)
-    metric_goal.metric("Meta do mês", format_currency_br(float(frame["Meta"].sum())))
-    metric_regions.metric("Regiões participantes", len(frame))
+    metric_goal.metric("Metas publicadas", format_currency_br(float(frame["Meta"].sum())))
+    metric_regions.metric("Regiões participantes", frame["Região"].nunique())
     metric_phases.metric("Fases confirmadas", f"{checked} de {total_phases}")
     metric_xp.metric("XP de adiantamento", f"{checked * 10} XP")
 
@@ -300,7 +311,7 @@ def render_overview(repository: Repository, month: date):
         confirmed = sum(bool(row[field]) for row in rows)
         with column:
             st.caption(LABELS[field])
-            st.progress(confirmed / len(rows), text=f"{confirmed} de {len(rows)} regiões")
+            st.progress(confirmed / len(rows), text=f"{confirmed} de {len(rows)} região-mês")
 
     st.subheader("Detalhamento regional")
     st.caption("Cada fase confirmada gera 10 XP para a região.")
@@ -323,16 +334,15 @@ def render_overview(repository: Repository, month: date):
     )
 
 
-def render_new_customers(repository: NewCustomersRepository, month: date):
+def render_new_customers(repository: NewCustomersRepository):
     """Exibe os primeiros eventos de compra identificados no histórico desde 2022."""
     render_page_header(
         "Clientes novos",
         "Acompanhe os grupos em sua primeira compra elegível e a atribuição dos XP.",
-        month,
     )
-    rows = repository.load(month)
+    rows = repository.load()
     if not rows:
-        st.info("Nenhum cliente novo foi identificado nesta competência.")
+        st.info("Nenhum cliente novo foi identificado na campanha.")
         return
 
     frame = pd.DataFrame(rows)
@@ -384,10 +394,11 @@ def render_new_customers(repository: NewCustomersRepository, month: date):
         "individual de 100 XP para clientes novos."
     )
     display = filtered.copy()
-    display["data_primeira_compra"] = pd.to_datetime(
-        display["data_primeira_compra"], errors="coerce"
-    ).dt.strftime("%d/%m/%Y")
+    first_purchase = pd.to_datetime(display["data_primeira_compra"], errors="coerce")
+    display["competencia"] = first_purchase.dt.month.map(MONTHS)
+    display["data_primeira_compra"] = first_purchase.dt.strftime("%d/%m/%Y")
     display = display.rename(columns={
+        "competencia": "Competência",
         "grupo_comercial_id": "Código",
         "nome_grupo_comercial": "Grupo comercial",
         "data_primeira_compra": "Primeira compra",
@@ -403,7 +414,7 @@ def render_new_customers(repository: NewCustomersRepository, month: date):
     })
     st.dataframe(
         display[[
-            "Primeira compra", "Código", "Grupo comercial", "Pedidos", "Qtd. pedidos",
+            "Competência", "Primeira compra", "Código", "Grupo comercial", "Pedidos", "Qtd. pedidos",
             "Vendedores", "Regiões", "Segmento", "Valor elegível", "Atribuição",
             "XP do evento", "XP por vendedor",
         ]],
@@ -417,42 +428,83 @@ def render_new_customers(repository: NewCustomersRepository, month: date):
     )
 
 
-def render_table(repository: Repository, month: date, identity: Identity, recheck_identity):
-    """Renderiza a conferência; leitores recebem somente a tabela de consulta."""
-    scope = f"{month.isoformat()}:{identity.user_id}"
+def advance_column(month: date, field: str) -> str:
+    return f"m{month.month:02d}_{field}"
+
+
+def advance_label(month: date, field: str) -> str:
+    return f"{MONTH_ABBREVIATIONS[month.month]} | {ADVANCE_SUFFIXES[field]}"
+
+
+def build_advancement_frame(month_rows: dict[date, list[dict]]) -> pd.DataFrame:
+    """Transforma registros mensais em uma linha única por região."""
+    regions = sorted({row["regiao"] for rows in month_rows.values() for row in rows})
+    records = []
+    for region in regions:
+        record = {"regiao": region}
+        for month in month_rows:
+            source = next((row for row in month_rows[month] if row["regiao"] == region), None)
+            for field in FIELDS:
+                record[advance_column(month, field)] = bool(source[field]) if source else False
+        records.append(record)
+    return pd.DataFrame(records)
+
+
+def render_table(repository: Repository, identity: Identity, recheck_identity):
+    """Renderiza os quatro meses em uma única tabela por região."""
+    scope = f"campaign:{identity.user_id}"
     if st.session_state.get("advance_scope") != scope:
-        st.session_state["advance_rows"] = repository.load(month)
+        st.session_state["advance_month_rows"] = repository.load_campaign()
         st.session_state["advance_scope"] = scope
         st.session_state["advance_revision"] = st.session_state.get("advance_revision", 0) + 1
-    rows = st.session_state["advance_rows"]
-    if not rows:
-        st.info("Nenhuma região disponível para esta competência.")
+    month_rows = st.session_state["advance_month_rows"]
+    frame = build_advancement_frame(month_rows)
+    if frame.empty:
+        st.info("Nenhuma região com meta positiva está disponível para a campanha.")
         return
-    frame = pd.DataFrame(rows)
-    checked = sum(sum(bool(row[field]) for field in FIELDS) for row in rows)
+
+    check_columns = [advance_column(month, field) for month in month_rows for field in FIELDS]
+    checked = int(frame[check_columns].sum().sum())
+    saved_rows = [row for rows in month_rows.values() for row in rows if row["versao"] > 0]
     a, b, c, d = st.columns(4)
-    a.metric("Regiões", len(rows))
+    a.metric("Regiões", len(frame))
     b.metric("Atingimentos marcados", checked)
-    c.metric("Registros salvos", sum(row["versao"] > 0 for row in rows))
+    c.metric("Registros mensais salvos", len(saved_rows))
     d.metric("XP de adiantamento", f"{checked * 10} XP")
-    configs = {
-        "regiao": st.column_config.TextColumn("Região"),
-        **{
-            field: st.column_config.CheckboxColumn(
-                LABELS[field],
-                help="Informe manualmente se a região atingiu esta fase. O sistema não calcula nem valida o prazo.",
+
+    configs = {"regiao": st.column_config.TextColumn("Região", pinned=True)}
+    for month in month_rows:
+        for field in FIELDS:
+            column = advance_column(month, field)
+            configs[column] = st.column_config.CheckboxColumn(
+                advance_label(month, field),
+                help="Informe manualmente se a região atingiu esta fase.",
             )
-            for field in FIELDS
-        },
-        "observacao": st.column_config.TextColumn("Observações", max_chars=2000, width="large"),
-    }
-    editable_columns = ["regiao", *FIELDS, "observacao"]
+
+    unavailable = [month for month, rows in month_rows.items() if not rows]
+    disabled = ["regiao", *[
+        advance_column(month, field)
+        for month in unavailable
+        for field in FIELDS
+    ]]
+    if unavailable:
+        st.caption(
+            "Aguardando metas para: "
+            + ", ".join(MONTHS[month.month] for month in unavailable)
+            + ". Os respectivos checks ficam desabilitados."
+        )
+
+    table_columns = ["regiao", *check_columns]
     if identity.can_edit:
-        st.caption("Marque os atingimentos conferidos. Cada fase é independente.")
+        st.caption("Marque os atingimentos conferidos e salve a campanha inteira de uma vez.")
         with st.form("advance_form"):
             edited = st.data_editor(
-                frame[editable_columns], column_config=configs, disabled=["regiao"],
-                num_rows="fixed", hide_index=True, width="stretch",
+                frame[table_columns],
+                column_config=configs,
+                disabled=disabled,
+                num_rows="fixed",
+                hide_index=True,
+                width="stretch",
                 key=f"advance_editor:{scope}:{st.session_state['advance_revision']}",
             )
             submitted = st.form_submit_button("Salvar alterações", type="primary", width="stretch")
@@ -460,30 +512,51 @@ def render_table(repository: Repository, month: date, identity: Identity, rechec
             current, _ = recheck_identity()
             if current.user_id != identity.user_id:
                 raise PermissionDenied("A conta conectada mudou. Recarregue a página.")
-            versions = {row["regiao"]: row["versao"] for row in rows}
-            payload = edited.to_dict("records")
-            for row in payload:
-                row["versao"] = versions.get(row["regiao"], -1)
-            count = repository.save(month, payload, current)
+            edited_by_region = {row["regiao"]: row for row in edited.to_dict("records")}
+            payload = []
+            for month, rows in month_rows.items():
+                for original in rows:
+                    wide = edited_by_region[original["regiao"]]
+                    payload.append({
+                        "competencia": month,
+                        "regiao": original["regiao"],
+                        **{
+                            field: bool(wide[advance_column(month, field)])
+                            for field in FIELDS
+                        },
+                        "observacao": original["observacao"],
+                        "versao": original["versao"],
+                    })
+            count = repository.save_campaign(payload, current)
             st.session_state.pop("advance_scope", None)
             st.session_state["advance_saved"] = (
-                f"Dados salvos: {count} região(ões) atualizada(s)."
+                f"Dados salvos: {count} registro(s) mensal(is) atualizado(s)."
                 if count else "Nenhuma alteração para salvar."
             )
             st.rerun()
     else:
         st.caption(f"Somente consulta. O preenchimento é realizado por {' e '.join(EDITOR_EMAILS)}.")
-        st.dataframe(frame[editable_columns], column_config=configs, hide_index=True, width="stretch")
+        st.dataframe(
+            frame[table_columns], column_config=configs, hide_index=True, width="stretch"
+        )
 
-    saved = frame[frame["versao"] > 0].copy()
-    if not saved.empty:
+    if saved_rows:
         with st.expander("Últimas atualizações"):
-            saved["atualizado_em"] = (
-                pd.to_datetime(saved["atualizado_em"], utc=True)
+            updates = pd.DataFrame([
+                {"competencia": MONTHS[month.month], **row}
+                for month, rows in month_rows.items()
+                for row in rows
+                if row["versao"] > 0
+            ])
+            updates["atualizado_em"] = (
+                pd.to_datetime(updates["atualizado_em"], utc=True)
                 .dt.tz_convert(ZoneInfo("America/Sao_Paulo"))
                 .dt.strftime("%d/%m/%Y %H:%M")
             )
-            st.dataframe(saved[["regiao", "atualizado_por", "atualizado_em"]].rename(columns={
+            st.dataframe(updates[[
+                "competencia", "regiao", "atualizado_por", "atualizado_em",
+            ]].rename(columns={
+                "competencia": "Competência",
                 "regiao": "Região",
                 "atualizado_por": "Atualizado por",
                 "atualizado_em": "Atualizado em",
@@ -495,7 +568,6 @@ def render_table(repository: Repository, month: date, identity: Identity, rechec
 
 def render_advancement(
     repository: Repository,
-    month: date,
     identity: Identity,
     authenticator: SupabaseAuthenticator,
 ):
@@ -503,13 +575,12 @@ def render_advancement(
     render_page_header(
         "Adiantamento de meta",
         "Confirme manualmente os atingimentos de cada região e acompanhe os XP gerados.",
-        month,
     )
     st.caption("1ª semana: 32% · 2ª semana: 56% · 3ª semana: 80% da meta mensal da região.")
     st.caption("Marcado significa atingiu; desmarcado significa não atingiu.")
     if message := st.session_state.pop("advance_saved", None):
         st.success(message)
-    render_table(repository, month, identity, lambda: current_identity(authenticator))
+    render_table(repository, identity, lambda: current_identity(authenticator))
 
 
 def main():
@@ -531,15 +602,15 @@ def main():
         render_login(authenticator)
         st.stop()
 
-    page, month = render_sidebar(identity, authenticator)
+    page = render_sidebar(identity, authenticator)
     try:
         repository = Repository(data_client)
         if page == "Visão geral":
-            render_overview(repository, month)
+            render_overview(repository)
         elif page == "Clientes novos":
-            render_new_customers(NewCustomersRepository(data_client), month)
+            render_new_customers(NewCustomersRepository(data_client))
         else:
-            render_advancement(repository, month, identity, authenticator)
+            render_advancement(repository, identity, authenticator)
     except (PermissionDenied, ConcurrentChange, ValueError) as error:
         st.warning(str(error))
         if st.button("Buscar versão atual"):
