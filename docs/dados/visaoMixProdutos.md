@@ -15,6 +15,8 @@ O valor dos pedidos do mesmo grupo, data e família é somado antes de verificar
 
 A função `public.campanha_polar_carregar_mix_produtos(date)`, criada por [mix_produtos.sql](../../sql/mix_produtos.sql), é executada pela Data API com o JWT do usuário autenticado. Os 23 códigos e os 16 grupos KA estão versionados no SQL conforme [produtosMix.csv](produtosMix.csv) e [gruposKA.csv](gruposKA.csv).
 
+O script recria a função quando seu contrato de retorno muda e, ao final, solicita a recarga do cache de schema da Data API. A diretiva de resolução de nomes da função prioriza as colunas dos CTEs e evita conflito com os nomes das colunas de retorno do PL/pgSQL.
+
 Os mínimos aplicados são:
 
 | Segmento | Família | Mínimo |

@@ -7,7 +7,12 @@ from typing import Any
 from httpx import HTTPError
 from postgrest.exceptions import APIError
 
-from polar.adiantamento import DataAccessError, PermissionDenied, validate_month
+from polar.adiantamento import (
+    DataAccessError,
+    PermissionDenied,
+    data_api_rejection_message,
+    validate_month,
+)
 
 LOAD_FUNCTION = "campanha_polar_carregar_mix_produtos"
 
@@ -36,7 +41,9 @@ class ProductMixRepository:
                 raise PermissionDenied(
                     "Faça login novamente para consultar o mix de produtos."
                 ) from error
-            raise DataAccessError("A Data API recusou a consulta do mix de produtos.") from error
+            raise DataAccessError(
+                data_api_rejection_message(error, "a consulta do mix de produtos")
+            ) from error
         except HTTPError as error:
             raise DataAccessError("Não foi possível consultar o mix de produtos.") from error
 

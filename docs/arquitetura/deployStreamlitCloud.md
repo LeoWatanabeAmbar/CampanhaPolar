@@ -53,6 +53,8 @@ Antes do primeiro uso, execute [adiantamento_meta.sql](../../sql/adiantamento_me
 
 As funções ficam no schema `public`, já atendido pela Data API padrão, e acessam internamente as tabelas de `comercial_marts`. Não é preciso expor o schema `comercial_marts` nas configurações da API.
 
+Quando uma atualização alterar as colunas retornadas por uma função, execute novamente o arquivo SQL correspondente. Os scripts notificam o PostgREST para recarregar o cache de schema após a transação. Se a Data API ainda recusar uma consulta, a mensagem do painel informa o código e a descrição enviados pelo Supabase para orientar o diagnóstico.
+
 ## 6. Publicar e validar
 
 Clique em **Deploy** e acompanhe os logs. Depois verifique:

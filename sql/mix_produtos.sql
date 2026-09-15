@@ -24,6 +24,7 @@ language plpgsql
 security definer
 set search_path = ''
 as $$
+#variable_conflict use_column
 begin
     if (select auth.uid()) is null then
         raise exception 'AUTH_REQUIRED' using errcode = '42501';
@@ -386,3 +387,6 @@ grant execute on function public.campanha_polar_carregar_mix_produtos(date)
     to authenticated;
 
 commit;
+
+-- Garante que a Data API enxergue imediatamente a nova assinatura de retorno.
+notify pgrst, 'reload schema';

@@ -4,7 +4,9 @@ from types import SimpleNamespace
 
 import pytest
 from streamlit.testing.v1 import AppTest
+from postgrest.exceptions import APIError
 
+from polar.adiantamento import DataAccessError
 from polar.mix_produtos import LOAD_FUNCTION, ProductMixRepository
 
 
@@ -106,6 +108,11 @@ class FakeClient:
         return FakeRequest(self.data)
 
 
+class RejectedClient:
+    def rpc(self, function, parameters):
+        raise APIError({"code": "PGRST202", "message": "Function not found in schema cache"})
+
+
 def test_repository_loads_whole_campaign():
     client = FakeClient(sample_rows())
     rows = ProductMixRepository(client).load()
@@ -122,11 +129,21 @@ def test_repository_rejects_invalid_month_before_rpc():
     assert client.calls == []
 
 
+def test_repository_reports_data_api_error_code_and_message():
+    with pytest.raises(DataAccessError) as captured:
+        ProductMixRepository(RejectedClient()).load()
+
+    assert "PGRST202" in str(captured.value)
+    assert "Function not found in schema cache" in str(captured.value)
+
+
 def test_sql_applies_mix_rules():
     sql = Path("sql/mix_produtos.sql").read_text(encoding="utf-8").lower()
     assert "security definer" in sql
     assert "set search_path = ''" in sql
     assert "grant execute on function public.campanha_polar_carregar_mix_produtos(date)" in sql
+    assert "#variable_conflict use_column" in sql
+    assert "notify pgrst, 'reload schema'" in sql
     assert "('002920'::text, 'hydrofix'::text)" in sql
     assert "('003027', 'suporte de bancada')" in sql
     assert "grupos_ka(grupo_comercial_id)" in sql

@@ -79,6 +79,20 @@ def _api_error_text(error: APIError) -> str:
     return " ".join((str(code), str(message), str(details), str(error))).upper()
 
 
+def data_api_rejection_message(error: APIError, operation: str) -> str:
+    """Expõe o código e a mensagem do PostgREST sem incluir detalhes da consulta."""
+    code = str(getattr(error, "code", "") or "").strip()
+    message = " ".join(str(getattr(error, "message", "") or "").split())
+    prefix = f"A Data API recusou {operation}."
+    if code and message:
+        return f"{prefix} Código {code}: {message}"
+    if code:
+        return f"{prefix} Código {code}."
+    if message:
+        return f"{prefix} Detalhe: {message}"
+    return prefix
+
+
 class Repository:
     """Chama funções SQL restritas usando o JWT do usuário autenticado."""
 
