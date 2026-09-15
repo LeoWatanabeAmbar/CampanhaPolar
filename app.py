@@ -19,6 +19,8 @@ from polar.adiantamento import (
     Repository,
 )
 from polar.clientes_novos import NewCustomersRepository
+from polar.clientes_reativados import ReactivatedCustomersRepository
+from polar.mix_produtos import ProductMixRepository
 
 MONTHS = {9: "Setembro", 10: "Outubro", 11: "Novembro", 12: "Dezembro"}
 MONTH_ABBREVIATIONS = {9: "Set", 10: "Out", 11: "Nov", 12: "Dez"}
@@ -258,7 +260,13 @@ def render_sidebar(identity: Identity, authenticator: SupabaseAuthenticator):
         st.caption("NAVEGAÇÃO")
         page = st.radio(
             "Página",
-            ("Visão geral", "Clientes novos", "Adiantamento de meta"),
+            (
+                "Visão geral",
+                "Clientes novos",
+                "Clientes reativados",
+                "Mix de produtos",
+                "Adiantamento de meta",
+            ),
             label_visibility="collapsed",
         )
         st.divider()
@@ -420,6 +428,228 @@ def render_new_customers(repository: NewCustomersRepository):
         ]],
         column_config={
             "Valor elegível": st.column_config.NumberColumn("Valor elegível", format="R$ %.2f"),
+            "XP do evento": st.column_config.NumberColumn("XP do evento", format="%.0f XP"),
+            "XP por vendedor": st.column_config.NumberColumn("XP por vendedor", format="%.0f XP"),
+        },
+        hide_index=True,
+        width="stretch",
+    )
+
+
+def render_reactivated_customers(repository: ReactivatedCustomersRepository):
+    """Exibe retornos após 6 meses em Canais ou 12 meses em Construção."""
+    render_page_header(
+        "Clientes reativados",
+        "Acompanhe os grupos que voltaram a comprar após o período mínimo de inatividade.",
+    )
+    rows = repository.load()
+    if not rows:
+        st.info("Nenhum cliente reativado foi identificado na campanha.")
+        return
+
+    frame = pd.DataFrame(rows)
+    region_names = sorted({
+        region.strip()
+        for value in frame["regioes"]
+        for region in str(value).split(" · ")
+        if region.strip()
+    })
+    filter_region, filter_status, filter_search = st.columns((1, 1, 2))
+    with filter_region:
+        selected_region = st.selectbox("Região", ["Todas", *region_names], key="reactivated_region")
+    with filter_status:
+        selected_status = st.selectbox(
+            "Atribuição", ["Todas", "Confirmadas", "Pendentes"], key="reactivated_status"
+        )
+    with filter_search:
+        search = st.text_input(
+            "Buscar", placeholder="Grupo, pedido ou vendedor", key="reactivated_search"
+        )
+
+    filtered = frame.copy()
+    if selected_region != "Todas":
+        filtered = filtered[filtered["regioes"].map(
+            lambda value: selected_region in {item.strip() for item in str(value).split(" · ")}
+        )]
+    pending = filtered["situacao_atribuicao"].str.startswith("Pendente")
+    if selected_status == "Confirmadas":
+        filtered = filtered[~pending]
+    elif selected_status == "Pendentes":
+        filtered = filtered[pending]
+    if normalized_search := search.strip():
+        searchable = filtered[[
+            "grupo_comercial_id", "nome_grupo_comercial", "pedidos", "vendedores", "regioes",
+        ]].astype(str).agg(" ".join, axis=1)
+        filtered = filtered[searchable.str.contains(normalized_search, case=False, regex=False)]
+
+    a, b, c, d = st.columns(4)
+    a.metric("Clientes reativados", len(filtered))
+    b.metric("Pedidos no retorno", int(filtered["quantidade_pedidos"].sum()))
+    c.metric(
+        "Valor líquido elegível",
+        format_currency_br(float(filtered["valor_liquido_elegivel"].sum())),
+    )
+    d.metric("XP bruto confirmado", f"{float(filtered['xp_evento'].sum()):g} XP")
+
+    pending_count = int(filtered["situacao_atribuicao"].str.startswith("Pendente").sum())
+    if pending_count:
+        st.warning(
+            f"{pending_count} cliente(s) reativado(s) possuem atribuição pendente e ainda não geram XP."
+        )
+
+    st.subheader("Eventos de reativação")
+    st.caption(
+        "Canais exige 6 meses e Construção exige 12 meses sem compra. O XP exibido é anterior "
+        "ao teto individual acumulado de 80 XP."
+    )
+    display = filtered.copy()
+    activation = pd.to_datetime(display["data_reativacao"], errors="coerce")
+    display["competencia"] = activation.dt.month.map(MONTHS)
+    display["data_reativacao"] = activation.dt.strftime("%d/%m/%Y")
+    display["data_ultima_compra"] = pd.to_datetime(
+        display["data_ultima_compra"], errors="coerce"
+    ).dt.strftime("%d/%m/%Y")
+    display["prazo_meses"] = display["prazo_meses"].map(lambda value: f"{value} meses")
+    display = display.rename(columns={
+        "competencia": "Competência",
+        "grupo_comercial_id": "Código",
+        "nome_grupo_comercial": "Grupo comercial",
+        "data_reativacao": "Reativação",
+        "data_ultima_compra": "Última compra",
+        "prazo_meses": "Prazo",
+        "pedidos": "Pedidos",
+        "quantidade_pedidos": "Qtd. pedidos",
+        "vendedores": "Vendedores",
+        "regioes": "Regiões",
+        "segmento": "Segmento",
+        "valor_liquido_elegivel": "Valor elegível",
+        "situacao_atribuicao": "Atribuição",
+        "xp_evento": "XP do evento",
+        "xp_por_vendedor": "XP por vendedor",
+    })
+    st.dataframe(
+        display[[
+            "Competência", "Reativação", "Última compra", "Prazo", "Código",
+            "Grupo comercial", "Pedidos", "Qtd. pedidos", "Vendedores", "Regiões",
+            "Segmento", "Valor elegível", "Atribuição", "XP do evento", "XP por vendedor",
+        ]],
+        column_config={
+            "Valor elegível": st.column_config.NumberColumn("Valor elegível", format="R$ %.2f"),
+            "XP do evento": st.column_config.NumberColumn("XP do evento", format="%.0f XP"),
+            "XP por vendedor": st.column_config.NumberColumn("XP por vendedor", format="%.0f XP"),
+        },
+        hide_index=True,
+        width="stretch",
+    )
+
+
+def render_product_mix(repository: ProductMixRepository):
+    """Exibe as primeiras compras das famílias de expansão de mix."""
+    render_page_header(
+        "Mix de produtos",
+        "Acompanhe a primeira compra de cada família, seus mínimos e os XP atribuídos.",
+    )
+    rows = repository.load()
+    if not rows:
+        st.info("Nenhum evento de expansão de mix foi identificado na campanha.")
+        return
+
+    frame = pd.DataFrame(rows)
+    region_names = sorted({
+        region.strip()
+        for value in frame["regioes"]
+        for region in str(value).split(" · ")
+        if region.strip()
+    })
+    product_groups = sorted(frame["grupo_mix"].dropna().unique())
+    filter_region, filter_product, filter_status, filter_search = st.columns((1, 1, 1, 2))
+    with filter_region:
+        selected_region = st.selectbox("Região", ["Todas", *region_names], key="mix_region")
+    with filter_product:
+        selected_product = st.selectbox(
+            "Família", ["Todas", *product_groups], key="mix_product"
+        )
+    with filter_status:
+        selected_status = st.selectbox(
+            "Resultado", ["Todos", "Com XP", "Pendentes", "Sem XP"], key="mix_status"
+        )
+    with filter_search:
+        search = st.text_input(
+            "Buscar", placeholder="Grupo, produto, pedido ou vendedor", key="mix_search"
+        )
+
+    filtered = frame.copy()
+    if selected_region != "Todas":
+        filtered = filtered[filtered["regioes"].map(
+            lambda value: selected_region in {item.strip() for item in str(value).split(" · ")}
+        )]
+    if selected_product != "Todas":
+        filtered = filtered[filtered["grupo_mix"] == selected_product]
+    pending = filtered["situacao_evento"].str.startswith("Pendente")
+    if selected_status == "Com XP":
+        filtered = filtered[filtered["xp_evento"] > 0]
+    elif selected_status == "Pendentes":
+        filtered = filtered[pending]
+    elif selected_status == "Sem XP":
+        filtered = filtered[(filtered["xp_evento"] <= 0) & ~pending]
+    if normalized_search := search.strip():
+        searchable = filtered[[
+            "grupo_comercial_id", "nome_grupo_comercial", "grupo_mix", "produtos",
+            "pedidos", "vendedores", "regioes",
+        ]].astype(str).agg(" ".join, axis=1)
+        filtered = filtered[searchable.str.contains(normalized_search, case=False, regex=False)]
+
+    a, b, c, d = st.columns(4)
+    a.metric("Linhas avaliadas", len(filtered))
+    b.metric("Expansões confirmadas", int((filtered["xp_evento"] > 0).sum()))
+    c.metric(
+        "Valor das linhas",
+        format_currency_br(float(filtered["valor_linha_elegivel"].sum())),
+    )
+    d.metric("XP confirmado", f"{float(filtered['xp_evento'].sum()):g} XP")
+
+    pending_count = int(filtered["situacao_evento"].str.startswith("Pendente").sum())
+    if pending_count:
+        st.warning(
+            f"{pending_count} evento(s) de mix possuem dados pendentes e ainda não geram XP."
+        )
+
+    st.subheader("Primeiras compras por família")
+    st.caption(
+        "Cada grupo comercial pode gerar 10 XP uma vez por família. Clientes KA não pontuam. "
+        "O indicador não possui teto individual."
+    )
+    display = filtered.copy()
+    event_date = pd.to_datetime(display["data_expansao"], errors="coerce")
+    display["competencia"] = event_date.dt.month.map(MONTHS)
+    display["data_expansao"] = event_date.dt.strftime("%d/%m/%Y")
+    display = display.rename(columns={
+        "competencia": "Competência",
+        "data_expansao": "Primeira compra",
+        "grupo_comercial_id": "Código",
+        "nome_grupo_comercial": "Grupo comercial",
+        "grupo_mix": "Família",
+        "produtos": "Produtos",
+        "pedidos": "Pedidos",
+        "quantidade_pedidos": "Qtd. pedidos",
+        "vendedores": "Vendedores",
+        "regioes": "Regiões",
+        "segmento": "Segmento",
+        "valor_linha_elegivel": "Valor da linha",
+        "valor_minimo": "Mínimo",
+        "situacao_evento": "Resultado",
+        "xp_evento": "XP do evento",
+        "xp_por_vendedor": "XP por vendedor",
+    })
+    st.dataframe(
+        display[[
+            "Competência", "Primeira compra", "Código", "Grupo comercial", "Família",
+            "Produtos", "Pedidos", "Qtd. pedidos", "Vendedores", "Regiões", "Segmento",
+            "Valor da linha", "Mínimo", "Resultado", "XP do evento", "XP por vendedor",
+        ]],
+        column_config={
+            "Valor da linha": st.column_config.NumberColumn("Valor da linha", format="R$ %.2f"),
+            "Mínimo": st.column_config.NumberColumn("Mínimo", format="R$ %.2f"),
             "XP do evento": st.column_config.NumberColumn("XP do evento", format="%.0f XP"),
             "XP por vendedor": st.column_config.NumberColumn("XP por vendedor", format="%.0f XP"),
         },
@@ -609,6 +839,10 @@ def main():
             render_overview(repository)
         elif page == "Clientes novos":
             render_new_customers(NewCustomersRepository(data_client))
+        elif page == "Clientes reativados":
+            render_reactivated_customers(ReactivatedCustomersRepository(data_client))
+        elif page == "Mix de produtos":
+            render_product_mix(ProductMixRepository(data_client))
         else:
             render_advancement(repository, identity, authenticator)
     except (PermissionDenied, ConcurrentChange, ValueError) as error:

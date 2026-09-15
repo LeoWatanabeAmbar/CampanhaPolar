@@ -1,9 +1,11 @@
 # Campanha Polar
 
-Painel implementado no padrão visual do Gestão Comercial, com navegação lateral e três páginas:
+Painel implementado no padrão visual do Gestão Comercial, com navegação lateral e cinco páginas:
 
-- **Visão geral:** meta total do mês, regiões participantes, fases confirmadas, XP regional de adiantamento, cobertura por fase e detalhamento regional.
+- **Visão geral:** metas publicadas da campanha, regiões participantes, fases confirmadas, XP regional de adiantamento, cobertura por fase e detalhamento regional.
 - **Clientes novos:** primeiros eventos elegíveis por grupo comercial, pedidos, vendedores, regiões, valor líquido e XP bruto do evento.
+- **Clientes reativados:** retornos após 6 meses em Canais ou 12 meses em Construção, com última compra, responsáveis e XP.
+- **Mix de produtos:** primeira compra das famílias mapeadas, mínimos por segmento, exclusões, pendências e XP.
 - **Adiantamento de meta:** uma linha por região e 12 checks, com as três fases de setembro, outubro, novembro e dezembro na mesma tabela.
 
 O login usa e-mail e senha do Supabase Authentication. Qualquer conta válida cadastrada em `auth.users` pode consultar o painel. Somente `lais.vendrasco@ambar.tech` e `leonardo.watanabe@ambar.tech` podem preencher e salvar. A sessão é revalidada no Supabase e o mesmo JWT acessa funções restritas da Data API.
@@ -11,7 +13,7 @@ O login usa e-mail e senha do Supabase Authentication. Qualquer conta válida ca
 ## Configuração e execução
 
 1. Instale as dependências: `python -m pip install -r requirements.txt`.
-2. Execute [sql/adiantamento_meta.sql](sql/adiantamento_meta.sql) e [sql/clientes_novos.sql](sql/clientes_novos.sql) no SQL Editor do Supabase. O primeiro cria as tabelas e funções do adiantamento; o segundo habilita a consulta autenticada dos clientes novos. Em uma instalação que recebeu a versão anterior do adiantamento, execute [20260915_usar_data_api.sql](sql/migrations/20260915_usar_data_api.sql) antes do SQL de clientes novos.
+2. Execute [sql/adiantamento_meta.sql](sql/adiantamento_meta.sql), [sql/clientes_novos.sql](sql/clientes_novos.sql), [sql/clientes_reativados.sql](sql/clientes_reativados.sql) e [sql/mix_produtos.sql](sql/mix_produtos.sql) no SQL Editor do Supabase. Eles habilitam o adiantamento e as três consultas autenticadas de clientes. Em uma instalação que recebeu a versão anterior do adiantamento, execute [20260915_usar_data_api.sql](sql/migrations/20260915_usar_data_api.sql) antes dos SQLs de clientes.
 3. Copie [.streamlit/secrets.example.toml](.streamlit/secrets.example.toml) para `.streamlit/secrets.toml` e configure somente `SUPABASE_URL` e `SUPABASE_PUBLISHABLE_KEY`. Nunca use `service_role` ou `sb_secret_...`.
 4. Inicie: `python -m streamlit run app.py`.
 
@@ -23,7 +25,7 @@ O Supabase Authentication recebe e-mail e senha e devolve os tokens da sessão; 
 
 ## Preenchimento
 
-- A navegação não possui filtro de competência. A visão geral e os clientes novos abrangem toda a campanha; o adiantamento reúne setembro a dezembro na mesma tabela.
+- A navegação não possui filtro de competência. As visões abrangem toda a campanha e identificam a competência nas tabelas; o adiantamento reúne setembro a dezembro na mesma tabela.
 - Marque cada fase após a conferência manual de suas condições. As fases são independentes; marcar 80% não marca automaticamente 32% ou 56%.
 - Clique em **Salvar alterações** para gravar todos os meses em uma única transação. Se houver conflito com outra sessão, nenhuma linha do envio é aplicada.
 - O histórico conserva os valores anteriores, os novos valores, a conta autenticada e a data/hora. É possível desmarcar um check como correção, preservando essa alteração no histórico.
@@ -38,4 +40,4 @@ Instale a ferramenta de testes com `python -m pip install "pytest>=8,<9"` e exec
 
 `python -m pytest -q`
 
-Os testes verificam autenticação e renovação de sessão, o contrato da Data API, autorização, independência das fases e dos meses, correções e histórico, rollback em conflito e interação da tela com editor/leitor. A integração com o projeto Supabase real depende da configuração do ambiente.
+Os testes verificam autenticação e renovação de sessão, os contratos da Data API, as páginas de novos, reativados e mix, autorização, independência das fases e dos meses, correções e histórico, rollback em conflito e interação da tela com editor/leitor. A integração com o projeto Supabase real depende da configuração do ambiente.

@@ -1,6 +1,6 @@
 # Objetivo do painel
 
-**Confirmado pelo usuário:** desenvolver um painel em Streamlit para visualizar o atingimento da campanha XP Polar. A implementação contém visão geral, adiantamento por região e, desde 15/09/2026, uma página de clientes novos por competência.
+**Confirmado pelo usuário:** desenvolver um painel em Streamlit para visualizar o atingimento da campanha XP Polar. A implementação contém visão geral, adiantamento por região e páginas de clientes novos, clientes reativados e mix de produtos para toda a campanha.
 
 ## Público e decisões
 
@@ -31,7 +31,9 @@ Marque as necessárias e acrescente outras.
 - Indicadores principais na primeira tela: **confirmado pelo usuário**, meta regional do mês disponível, realizado regional acumulado no mês, dias úteis restantes, meta diária, meta parcial até a referência, percentual de atingimento parcial e XP de vendas calculado para a região. Manter uma única meta e um único resultado regional mesmo com dois vendedores no mês. Proposta complementar: saldo da meta e venda necessária por dia útil restante.
 - Gráficos ou tabelas desejados: proposta de comparação do realizado acumulado com a meta parcial por dia útil, acompanhada de tabela por data para conferência. O formato visual definitivo permanece a definir.
 - Tabela de adiantamento atualizada em 15/09/2026: uma linha por região e 12 checks, com as três fases de setembro, outubro, novembro e dezembro lado a lado. Somente `lais.vendrasco@ambar.tech` e `leonardo.watanabe@ambar.tech` podem preencher e salvar; os demais usuários autenticados visualizam.
-- Visão de clientes novos solicitada e implementada em 15/09/2026: indicadores mensais, filtros por região e atribuição, busca textual e detalhe do primeiro evento elegível de cada grupo. Exibe 10 XP brutos por evento confirmado, ou 5 XP para cada um dos dois vendedores, antes do teto individual acumulado de 100 XP.
+- Visão de clientes novos solicitada e implementada em 15/09/2026: indicadores da campanha, filtros por região e atribuição, busca textual e detalhe do primeiro evento elegível de cada grupo. Exibe 10 XP brutos por evento confirmado, ou 5 XP para cada um dos dois vendedores, antes do teto individual acumulado de 100 XP.
+- Visão de clientes reativados implementada em 15/09/2026: mostra a última compra, o retorno, o prazo aplicável de 6 ou 12 meses, pedidos reunidos no dia, responsáveis e 8 XP brutos por evento confirmado, antes do teto individual acumulado de 80 XP.
+- Visão de mix de produtos implementada em 15/09/2026: mostra a primeira compra por grupo comercial e família, produtos, mínimo do segmento, exclusão de KA, atribuição e 10 XP por expansão confirmada. Eventos afetados por devolução sem detalhe de produto permanecem pendentes.
 - XP de adiantamento, confirmado pelo usuário em 14/09/2026: vinculado à região, com 10 XP por fase confirmada, até 30 XP no mês e 120 XP na campanha. Dois vendedores na região não dividem nem duplicam os pontos. O painel já calcula e exibe o total mensal a partir dos checks salvos; a integração ao total completo da campanha permanece na etapa de apuração.
 - Navegação: o filtro global de competência foi removido em 15/09/2026. As telas abrangem a campanha inteira e identificam a competência nas tabelas. Filtros futuros de região, vendedor, gestor, segmento e data de referência permanecem vinculados à necessidade de cada visão.
 - Vínculo vendedor–região: **confirmado pelo usuário em 14/09/2026**, os vendedores não mudarão de região durante a campanha. Usar a região cadastrada para todas as competências, mantendo uma única meta e pontuação regional mesmo quando houver dois vendedores.

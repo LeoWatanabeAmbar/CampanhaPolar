@@ -2,7 +2,7 @@
 
 **Confirmado pelo usuário:** o painel será desenvolvido em Streamlit. Este documento coleta preferências e restrições; não é necessário definir detalhes técnicos agora.
 
-**Primeira versão do painel implementada em 14/09/2026:** [visão geral e adiantamento manual por região](../../app.py), conforme solicitação do usuário. A interface usa o padrão visual do Gestão Comercial e o restante da apuração continua em preparação. Configuração, testes e situação de implantação estão no [README do projeto](../../README.md).
+**Painel atualizado em 15/09/2026:** [app.py](../../app.py) reúne visão geral, clientes novos, clientes reativados, mix de produtos e adiantamento manual por região. A interface usa o padrão visual do Gestão Comercial. Configuração, testes e situação de implantação estão no [README do projeto](../../README.md).
 
 ## Entrada e atualização dos dados
 
@@ -40,7 +40,7 @@ flowchart TD
 
 O código do dataflow e do Gestão Comercial foi examinado; tabelas e disponibilidade foram conferidas por conexão PostgreSQL somente leitura em 09/09/2026. A tela de adiantamento passou a usar Supabase Auth e Data API em 15/09/2026; ainda precisa dos dois secrets públicos no ambiente e da execução do SQL no projeto. As demais integrações permanecem para as próximas etapas. Os contratos e pendências estão em [dadoVenda.md](../dados/dadoVenda.md) e [dadoMeta.md](../dados/dadoMeta.md).
 
-A [tabela derivada de enquadramento](../dados/dadoEnquadramento.md), proposta em 10/09/2026, usará o histórico completo para classificar os pedidos da campanha quanto a clientes novos, reativados e mix. Sua materialização no banco ainda não foi implementada. A página atual de clientes novos calcula esse indicador sob demanda por uma função da Data API, documentada em [Visão de clientes novos](../dados/visaoClientesNovos.md).
+A [tabela derivada de enquadramento](../dados/dadoEnquadramento.md), proposta em 10/09/2026, poderá materializar futuramente a classificação unificada dos pedidos. As páginas atuais calculam novos, reativados e mix sob demanda por funções da Data API, documentadas nas respectivas visões de [clientes novos](../dados/visaoClientesNovos.md), [clientes reativados](../dados/visaoClientesReativados.md) e [mix de produtos](../dados/visaoMixProdutos.md).
 
 ## Acesso e uso
 
@@ -59,13 +59,15 @@ Descreva as telas desejadas em linguagem simples. Exemplos possíveis: visão ge
 | --- | --- | --- |
 | Visão geral | Metas publicadas, regiões participantes, cobertura das fases e XP regional de adiantamento em toda a campanha | Usuários autenticados consultam |
 | Clientes novos | Primeira compra elegível por grupo em toda a campanha, pedidos consolidados no dia, responsáveis, regiões, valor líquido, atribuição e XP bruto | Usuários autenticados consultam |
+| Clientes reativados | Retorno do grupo após 6 meses em Canais ou 12 meses em Construção, última compra, pedidos, responsáveis, valor líquido e XP bruto | Usuários autenticados consultam |
+| Mix de produtos | Primeira compra das quatro famílias mapeadas, mínimo aplicável, exclusões de KA, pendências, atribuição e XP | Usuários autenticados consultam |
 | Adiantamento de meta | Uma linha por região e 12 checks: três fases para cada mês de setembro a dezembro | Usuários autenticados consultam; somente `lais.vendrasco@ambar.tech` e `leonardo.watanabe@ambar.tech` salvam |
 
 ## Identidade visual
 
 - Logo e imagens disponíveis na pasta assets: `assets/logo_polar_horizontal.png`, copiado da referência local do Gestão Comercial.
 - Cores e referências visuais: **confirmado pelo usuário em 14/09/2026**, seguir o padrão do Gestão Comercial: azul Polar `#0072D6`, azul escuro `#005DAD`, fundo branco, cartões com borda azul, cabeçalhos de tabela azuis, texto principal `#17233A` e fundo secundário `#F4F8FC`.
-- Nome exibido: `Campanha Polar`; páginas iniciais `Visão geral` e `Adiantamento de meta`.
+- Nome exibido: `Campanha Polar`; navegação com visão geral, novos, reativados, mix e adiantamento.
 
 ## Operação e manutenção
 
