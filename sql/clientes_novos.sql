@@ -19,7 +19,9 @@ returns table (
 language plpgsql
 security definer
 set search_path = ''
+set statement_timeout = '60s'
 as $$
+#variable_conflict use_column
 begin
     if (select auth.uid()) is null then
         raise exception 'AUTH_REQUIRED' using errcode = '42501';
@@ -75,6 +77,8 @@ begin
           and not coalesce(f.is_bonificacao, false)
           and not coalesce(f.is_remessa, false)
           and not coalesce(f.is_transferencia, false)
+          and f.data_emissao >= date '2022-01-01'
+          and f.data_emissao <= current_date
         group by trim(f.filial_id), trim(f.pedido_id)
     ),
     grupos_com_data_pendente as (
@@ -339,3 +343,5 @@ grant execute on function public.campanha_polar_carregar_clientes_novos(date)
     to authenticated;
 
 commit;
+
+notify pgrst, 'reload schema';

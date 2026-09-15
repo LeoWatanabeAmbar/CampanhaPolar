@@ -104,6 +104,8 @@ def test_sql_applies_confirmed_new_customer_rules():
     sql = Path("sql/clientes_novos.sql").read_text(encoding="utf-8").lower()
     assert "security definer" in sql
     assert "set search_path = ''" in sql
+    assert "set statement_timeout = '60s'" in sql
+    assert "#variable_conflict use_column" in sql
     assert "grant execute on function public.campanha_polar_carregar_clientes_novos(date)" in sql
     assert "date '2022-01-01'" in sql
     assert "vw_clientes_inadimplentes" in sql

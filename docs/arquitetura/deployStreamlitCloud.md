@@ -55,6 +55,8 @@ As funções ficam no schema `public`, já atendido pela Data API padrão, e ace
 
 Quando uma atualização alterar as colunas retornadas por uma função, execute novamente o arquivo SQL correspondente. Os scripts notificam o PostgREST para recarregar o cache de schema após a transação. Se a Data API ainda recusar uma consulta, a mensagem do painel informa o código e a descrição enviados pelo Supabase para orientar o diagnóstico.
 
+As três consultas analíticas recebem um limite próprio de 60 segundos, o máximo configurável para chamadas da Client API. Em uma instalação que já possua as funções, [20260915_ampliar_timeout_data_api.sql](../../sql/migrations/20260915_ampliar_timeout_data_api.sql) aplica somente esse ajuste sem alterar o limite das outras operações do projeto.
+
 ## 6. Publicar e validar
 
 Clique em **Deploy** e acompanhe os logs. Depois verifique:

@@ -141,6 +141,7 @@ def test_sql_applies_mix_rules():
     sql = Path("sql/mix_produtos.sql").read_text(encoding="utf-8").lower()
     assert "security definer" in sql
     assert "set search_path = ''" in sql
+    assert "set statement_timeout = '60s'" in sql
     assert "grant execute on function public.campanha_polar_carregar_mix_produtos(date)" in sql
     assert "#variable_conflict use_column" in sql
     assert "notify pgrst, 'reload schema'" in sql

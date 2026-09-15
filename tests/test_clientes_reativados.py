@@ -105,6 +105,8 @@ def test_sql_applies_reactivation_rules():
     sql = Path("sql/clientes_reativados.sql").read_text(encoding="utf-8").lower()
     assert "security definer" in sql
     assert "set search_path = ''" in sql
+    assert "set statement_timeout = '60s'" in sql
+    assert "#variable_conflict use_column" in sql
     assert "grant execute on function public.campanha_polar_carregar_clientes_reativados(date)" in sql
     assert "interval '6 months'" in sql
     assert "interval '12 months'" in sql
