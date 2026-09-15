@@ -19,15 +19,11 @@ def sample_rows():
             "data_ultima_compra": "2025-10-07",
             "prazo_meses": 6,
             "pedidos": "01101/058476",
-            "quantidade_pedidos": 1,
-            "vendedores": "Vendedor A",
-            "regioes": "CANAIS 01",
+            "vendedor": "Vendedor A",
+            "regiao": "CANAIS 01",
             "segmento": "Canais",
-            "valor_liquido_elegivel": 7807.25,
-            "quantidade_vendedores": 1,
             "situacao_atribuicao": "Integral",
-            "xp_evento": 8,
-            "xp_por_vendedor": 8,
+            "xp": 8,
         },
         {
             "grupo_comercial_id": "CB2",
@@ -36,15 +32,24 @@ def sample_rows():
             "data_ultima_compra": "2025-05-08",
             "prazo_meses": 12,
             "pedidos": "01101/058578",
-            "quantidade_pedidos": 1,
-            "vendedores": "Vendedor B · Vendedor C",
-            "regioes": "NORTE 01 · NORTE 02",
+            "vendedor": "Vendedor B",
+            "regiao": "NORTE 01",
             "segmento": "Construção",
-            "valor_liquido_elegivel": 3722.80,
-            "quantidade_vendedores": 2,
             "situacao_atribuicao": "Divisão 50/50",
-            "xp_evento": 8,
-            "xp_por_vendedor": 4,
+            "xp": 4,
+        },
+        {
+            "grupo_comercial_id": "CB2",
+            "nome_grupo_comercial": "URBEN PARTICIPAÇÕES",
+            "data_reativacao": "2026-09-04",
+            "data_ultima_compra": "2025-05-08",
+            "prazo_meses": 12,
+            "pedidos": "01101/058578",
+            "vendedor": "Vendedor C",
+            "regiao": "NORTE 02",
+            "segmento": "Construção",
+            "situacao_atribuicao": "Divisão 50/50",
+            "xp": 4,
         },
         {
             "grupo_comercial_id": "F999",
@@ -53,15 +58,11 @@ def sample_rows():
             "data_ultima_compra": "2025-01-01",
             "prazo_meses": 12,
             "pedidos": "01101/058999",
-            "quantidade_pedidos": 1,
-            "vendedores": "Vendedor D",
-            "regioes": "NORTE 01",
+            "vendedor": "Vendedor D",
+            "regiao": "NORTE 01",
             "segmento": "Construção",
-            "valor_liquido_elegivel": 1000,
-            "quantidade_vendedores": 1,
             "situacao_atribuicao": "Pendente: região sem meta",
-            "xp_evento": 0,
-            "xp_por_vendedor": 0,
+            "xp": 0,
         },
     ]
 
@@ -90,7 +91,7 @@ def test_repository_loads_whole_campaign():
 
     assert client.calls == [(LOAD_FUNCTION, {"p_competencia": None})]
     assert rows[0]["prazo_meses"] == 6
-    assert rows[1]["xp_por_vendedor"] == 4
+    assert rows[1]["xp"] == 4
 
 
 def test_repository_rejects_invalid_month_before_rpc():
@@ -109,6 +110,8 @@ def test_sql_applies_reactivation_rules():
     assert "interval '12 months'" in sql
     assert "lag(e.data_emissao)" in sql
     assert "then 8.0 / r.quantidade_vendedores" in sql
+    assert "detalhes as (" in sql
+    assert "inner join detalhes as d" in sql
     assert "vw_clientes_inadimplentes" in sql
     assert "fct_nota_devolucao" in sql
 
@@ -120,20 +123,46 @@ def page_runner():
     render_reactivated_customers(st.session_state["repo"])
 
 
-def test_page_renders_reactivated_metrics_warning_and_table():
+def test_page_renders_reactivated_summary_region_filter_and_details():
     repository = SimpleNamespace(load=lambda: sample_rows())
     app = AppTest.from_function(page_runner)
     app.session_state["repo"] = repository
     app.run(timeout=15)
 
     assert not app.exception
-    assert [metric.label for metric in app.metric] == [
-        "Clientes reativados",
-        "Pedidos no retorno",
-        "Valor líquido elegível",
-        "XP bruto confirmado",
+    assert len(app.metric) == 0
+    assert len(app.selectbox) == 1
+    assert app.selectbox[0].label == "Região"
+    assert len(app.dataframe) == 2
+    assert list(app.dataframe[0].value.columns) == [
+        "Região",
+        "Quantidade de clientes reativados",
+        "Lista dos clientes reativados",
+        "Total XP",
     ]
-    assert app.metric[0].value == "3"
-    assert app.metric[3].value == "16 XP"
-    assert len(app.warning) == 1
-    assert len(app.dataframe) == 1
+    detail = app.dataframe[1].value
+    assert list(detail.columns) == [
+        "Data", "Última compra", "Prazo", "Grupo comercial", "Pedido de venda",
+        "Vendedores", "Região", "Segmento", "Atribuição", "XP",
+    ]
+    triangulation = detail[detail["Grupo comercial"] == "URBEN PARTICIPAÇÕES"]
+    assert list(triangulation["Vendedores"]) == ["Vendedor B", "Vendedor C"]
+    assert list(triangulation["Região"]) == ["NORTE 01", "NORTE 02"]
+    assert list(triangulation["XP"]) == [4.0, 4.0]
+
+
+def test_reactivated_region_summary_counts_event_once_and_sums_xp():
+    import pandas as pd
+
+    from app import build_reactivated_customers_region_summary
+
+    summary = build_reactivated_customers_region_summary(
+        pd.DataFrame(sample_rows())
+    ).set_index("Região")
+
+    assert summary.loc["CANAIS 01", "Quantidade de clientes reativados"] == 1
+    assert summary.loc["CANAIS 01", "Total XP"] == pytest.approx(8)
+    assert summary.loc["NORTE 01", "Quantidade de clientes reativados"] == 2
+    assert summary.loc["NORTE 01", "Total XP"] == pytest.approx(4)
+    assert summary.loc["NORTE 02", "Quantidade de clientes reativados"] == 1
+    assert summary.loc["NORTE 02", "Total XP"] == pytest.approx(4)

@@ -17,16 +17,13 @@ def sample_rows():
             "grupo_mix": "Hydrofix",
             "produtos": "002920 · 002921",
             "pedidos": "01101/058349",
-            "quantidade_pedidos": 1,
-            "vendedores": "Vendedor A",
-            "regioes": "SUL 01",
+            "vendedor": "Vendedor A",
+            "regiao": "SUL 01",
             "segmento": "Construção",
             "valor_linha_elegivel": 3500,
             "valor_minimo": 3000,
-            "quantidade_vendedores": 1,
             "situacao_evento": "Confirmado: integral",
-            "xp_evento": 10,
-            "xp_por_vendedor": 10,
+            "xp": 10,
         },
         {
             "grupo_comercial_id": "F224",
@@ -35,16 +32,28 @@ def sample_rows():
             "grupo_mix": "Suporte de Bancada",
             "produtos": "002917",
             "pedidos": "01101/058691 · 01101/058697",
-            "quantidade_pedidos": 2,
-            "vendedores": "Vendedor B · Vendedor C",
-            "regioes": "NORTE 01 · NORTE 02",
+            "vendedor": "Vendedor B",
+            "regiao": "NORTE 01",
             "segmento": "Construção",
             "valor_linha_elegivel": 10000,
             "valor_minimo": 9000,
-            "quantidade_vendedores": 2,
             "situacao_evento": "Confirmado: divisão 50/50",
-            "xp_evento": 10,
-            "xp_por_vendedor": 5,
+            "xp": 5,
+        },
+        {
+            "grupo_comercial_id": "F224",
+            "nome_grupo_comercial": "PLANO INCORPORAÇÕES",
+            "data_expansao": "2026-09-10",
+            "grupo_mix": "Suporte de Bancada",
+            "produtos": "002917",
+            "pedidos": "01101/058691 · 01101/058697",
+            "vendedor": "Vendedor C",
+            "regiao": "NORTE 02",
+            "segmento": "Construção",
+            "valor_linha_elegivel": 10000,
+            "valor_minimo": 9000,
+            "situacao_evento": "Confirmado: divisão 50/50",
+            "xp": 5,
         },
         {
             "grupo_comercial_id": "F999",
@@ -53,16 +62,13 @@ def sample_rows():
             "grupo_mix": "CPP 009",
             "produtos": "000010",
             "pedidos": "01101/058999",
-            "quantidade_pedidos": 1,
-            "vendedores": "Vendedor D",
-            "regioes": "CANAIS 01",
+            "vendedor": "Vendedor D",
+            "regiao": "CANAIS 01",
             "segmento": "Canais",
             "valor_linha_elegivel": 2500,
             "valor_minimo": 2200,
-            "quantidade_vendedores": 1,
             "situacao_evento": "Pendente: devolução sem produto",
-            "xp_evento": 0,
-            "xp_por_vendedor": 0,
+            "xp": 0,
         },
         {
             "grupo_comercial_id": "C02",
@@ -71,16 +77,13 @@ def sample_rows():
             "grupo_mix": "Hydrofix",
             "produtos": "002920",
             "pedidos": "01101/059000",
-            "quantidade_pedidos": 1,
-            "vendedores": "Vendedor E",
-            "regioes": "NORTE 01",
+            "vendedor": "Vendedor E",
+            "regiao": "NORTE 01",
             "segmento": "Construção",
             "valor_linha_elegivel": 4000,
             "valor_minimo": 3000,
-            "quantidade_vendedores": 1,
             "situacao_evento": "Sem XP: cliente KA",
-            "xp_evento": 0,
-            "xp_por_vendedor": 0,
+            "xp": 0,
         },
     ]
 
@@ -109,7 +112,7 @@ def test_repository_loads_whole_campaign():
 
     assert client.calls == [(LOAD_FUNCTION, {"p_competencia": None})]
     assert rows[0]["valor_minimo"] == pytest.approx(3000)
-    assert rows[1]["xp_por_vendedor"] == 5
+    assert rows[1]["xp"] == 5
 
 
 def test_repository_rejects_invalid_month_before_rpc():
@@ -132,6 +135,8 @@ def test_sql_applies_mix_rules():
     assert "then 2200" in sql
     assert "pendente: devolução sem produto" in sql
     assert "then 10.0 / p.quantidade_vendedores" in sql
+    assert "detalhes as (" in sql
+    assert "inner join detalhes as d" in sql
 
 
 def page_runner():
@@ -141,21 +146,42 @@ def page_runner():
     render_product_mix(st.session_state["repo"])
 
 
-def test_page_renders_mix_metrics_warning_and_table():
+def test_page_renders_mix_summary_region_filter_and_details():
     repository = SimpleNamespace(load=lambda: sample_rows())
     app = AppTest.from_function(page_runner)
     app.session_state["repo"] = repository
     app.run(timeout=15)
 
     assert not app.exception
-    assert [metric.label for metric in app.metric] == [
-        "Linhas avaliadas",
-        "Expansões confirmadas",
-        "Valor das linhas",
-        "XP confirmado",
+    assert len(app.metric) == 0
+    assert len(app.selectbox) == 1
+    assert app.selectbox[0].label == "Região"
+    assert len(app.dataframe) == 2
+    assert list(app.dataframe[0].value.columns) == [
+        "Região", "Quantidade de expansões", "Lista das expansões", "Total XP",
     ]
-    assert app.metric[0].value == "4"
-    assert app.metric[1].value == "2"
-    assert app.metric[3].value == "20 XP"
-    assert len(app.warning) == 1
-    assert len(app.dataframe) == 1
+    detail = app.dataframe[1].value
+    assert list(detail.columns) == [
+        "Data", "Grupo comercial", "Família", "Produtos", "Pedido de venda",
+        "Vendedores", "Região", "Segmento", "Valor da linha", "Mínimo", "Resultado", "XP",
+    ]
+    triangulation = detail[detail["Grupo comercial"] == "PLANO INCORPORAÇÕES"]
+    assert list(triangulation["Vendedores"]) == ["Vendedor B", "Vendedor C"]
+    assert list(triangulation["Região"]) == ["NORTE 01", "NORTE 02"]
+    assert list(triangulation["XP"]) == [5.0, 5.0]
+
+
+def test_mix_region_summary_counts_expansion_once_and_ignores_zero_xp():
+    import pandas as pd
+
+    from app import build_product_mix_region_summary
+
+    summary = build_product_mix_region_summary(pd.DataFrame(sample_rows())).set_index("Região")
+
+    assert summary.loc["SUL 01", "Quantidade de expansões"] == 1
+    assert summary.loc["SUL 01", "Total XP"] == pytest.approx(10)
+    assert summary.loc["NORTE 01", "Quantidade de expansões"] == 1
+    assert summary.loc["NORTE 01", "Total XP"] == pytest.approx(5)
+    assert summary.loc["NORTE 02", "Quantidade de expansões"] == 1
+    assert summary.loc["NORTE 02", "Total XP"] == pytest.approx(5)
+    assert "CANAIS 01" not in summary.index

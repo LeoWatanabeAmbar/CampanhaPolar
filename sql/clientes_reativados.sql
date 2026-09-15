@@ -2,6 +2,8 @@
 -- A função usa a situação atual das fontes e fica disponível somente para usuários autenticados.
 begin;
 
+drop function if exists public.campanha_polar_carregar_clientes_reativados(date);
+
 create or replace function public.campanha_polar_carregar_clientes_reativados(p_competencia date)
 returns table (
     grupo_comercial_id text,
@@ -10,15 +12,11 @@ returns table (
     data_ultima_compra date,
     prazo_meses integer,
     pedidos text,
-    quantidade_pedidos bigint,
-    vendedores text,
-    regioes text,
+    vendedor text,
+    regiao text,
     segmento text,
-    valor_liquido_elegivel numeric,
-    quantidade_vendedores bigint,
     situacao_atribuicao text,
-    xp_evento numeric,
-    xp_por_vendedor numeric
+    xp numeric
 )
 language plpgsql
 security definer
@@ -257,6 +255,25 @@ begin
         from alocacoes as a
         group by a.grupo_comercial_id, a.data_emissao
     ),
+    detalhes as (
+        select
+            a.grupo_comercial_id,
+            a.data_emissao,
+            a.vendedor_id,
+            coalesce(a.nome_vendedor, a.vendedor_id, 'Não identificado')::text as vendedor,
+            coalesce(a.regiao, '')::text as regiao,
+            string_agg(
+                distinct a.filial_id || '/' || a.pedido_id,
+                ' · ' order by a.filial_id || '/' || a.pedido_id
+            )::text as pedidos
+        from alocacoes as a
+        group by
+            a.grupo_comercial_id,
+            a.data_emissao,
+            a.vendedor_id,
+            coalesce(a.nome_vendedor, a.vendedor_id, 'Não identificado'),
+            coalesce(a.regiao, '')
+    ),
     sequencia as (
         select
             e.*,
@@ -317,13 +334,10 @@ begin
         r.data_emissao as data_reativacao,
         r.data_ultima_compra,
         r.prazo_meses,
-        r.pedidos,
-        r.quantidade_pedidos,
-        r.vendedores,
-        coalesce(r.regioes, '')::text as regioes,
+        d.pedidos,
+        d.vendedor,
+        d.regiao,
         r.segmento,
-        r.valor_liquido_elegivel,
-        r.quantidade_vendedores,
         case
             when r.tem_vendedor_ausente then 'Pendente: vendedor não identificado'
             when r.quantidade_vendedores not in (1, 2) then 'Pendente: quantidade de vendedores'
@@ -339,19 +353,14 @@ begin
              and r.mapeamento_valido
              and r.quantidade_segmentos = 1
              and r.todas_regioes_participantes
-            then 8 else 0
-        end::numeric as xp_evento,
-        case
-            when not r.tem_vendedor_ausente
-             and r.quantidade_vendedores in (1, 2)
-             and r.mapeamento_valido
-             and r.quantidade_segmentos = 1
-             and r.todas_regioes_participantes
             then 8.0 / r.quantidade_vendedores else 0
-        end::numeric as xp_por_vendedor
+        end::numeric as xp
     from reativados as r
     inner join grupos_dim as g on g.grupo_comercial_id = r.grupo_comercial_id
-    order by r.data_emissao, g.nome_grupo_comercial;
+    inner join detalhes as d
+      on d.grupo_comercial_id = r.grupo_comercial_id
+     and d.data_emissao = r.data_emissao
+    order by r.data_emissao, g.nome_grupo_comercial, d.vendedor, d.regiao;
 end;
 $$;
 

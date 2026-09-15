@@ -4,12 +4,12 @@
 
 ## Conteúdo da página
 
-- indicadores de clientes reativados, pedidos reunidos no retorno, valor líquido elegível e XP bruto confirmado;
-- filtros por região, situação da atribuição e busca por grupo, pedido ou vendedor;
-- data da última compra válida, data da reativação, competência e prazo aplicado;
-- pedidos, vendedores, regiões, segmento, valor e distribuição dos XP.
+- tabela inicial por região com quantidade de clientes reativados, lista dos grupos e XP total;
+- apenas filtro de região no detalhamento;
+- data da última compra válida, data da reativação e prazo aplicado;
+- uma linha por vendedor e região, com pedidos, segmento, atribuição e XP.
 
-Pedidos do mesmo grupo comercial na mesma data formam um único evento. O limite do prazo é inclusivo: a compra pode pontuar no dia em que completa exatamente 6 ou 12 meses. Um evento confirmado gera 8 XP; um vendedor recebe os 8 XP e exatamente dois vendedores recebem 4 XP cada. O teto individual acumulado na campanha é 80 XP.
+Pedidos do mesmo grupo comercial na mesma data formam um único evento. O limite do prazo é inclusivo: a compra pode pontuar no dia em que completa exatamente 6 ou 12 meses. Um evento confirmado gera 8 XP; um vendedor recebe os 8 XP e exatamente dois vendedores aparecem em duas linhas de 4 XP cada. O teto individual acumulado na campanha é 80 XP.
 
 ## Consulta e regras aplicadas
 

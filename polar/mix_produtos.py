@@ -68,19 +68,16 @@ class ProductMixRepository:
                 "grupo_mix": product_group,
                 "produtos": str(item.get("produtos") or ""),
                 "pedidos": str(item.get("pedidos") or ""),
-                "quantidade_pedidos": int(item.get("quantidade_pedidos") or 0),
-                "vendedores": str(item.get("vendedores") or ""),
-                "regioes": str(item.get("regioes") or ""),
-                "segmento": str(item.get("segmento") or ""),
+                "vendedor": str(item.get("vendedor") or "Não identificado").strip(),
+                "regiao": str(item.get("regiao") or "").strip(),
+                "segmento": str(item.get("segmento") or "").strip(),
                 "valor_linha_elegivel": float(item.get("valor_linha_elegivel") or 0),
                 "valor_minimo": (
                     float(item["valor_minimo"])
                     if item.get("valor_minimo") is not None
                     else None
                 ),
-                "quantidade_vendedores": int(item.get("quantidade_vendedores") or 0),
                 "situacao_evento": str(item.get("situacao_evento") or "Pendente"),
-                "xp_evento": float(item.get("xp_evento") or 0),
-                "xp_por_vendedor": float(item.get("xp_por_vendedor") or 0),
+                "xp": float(item.get("xp") or 0),
             })
         return rows

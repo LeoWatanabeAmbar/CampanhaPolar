@@ -2,6 +2,8 @@
 -- A função usa a situação atual das fontes e fica disponível somente para usuários autenticados.
 begin;
 
+drop function if exists public.campanha_polar_carregar_mix_produtos(date);
+
 create or replace function public.campanha_polar_carregar_mix_produtos(p_competencia date)
 returns table (
     grupo_comercial_id text,
@@ -10,16 +12,13 @@ returns table (
     grupo_mix text,
     produtos text,
     pedidos text,
-    quantidade_pedidos bigint,
-    vendedores text,
-    regioes text,
+    vendedor text,
+    regiao text,
     segmento text,
     valor_linha_elegivel numeric,
     valor_minimo numeric,
-    quantidade_vendedores bigint,
     situacao_evento text,
-    xp_evento numeric,
-    xp_por_vendedor numeric
+    xp numeric
 )
 language plpgsql
 security definer
@@ -256,6 +255,28 @@ begin
         from alocacoes as a
         group by a.grupo_comercial_id, a.data_emissao, a.grupo_mix
     ),
+    detalhes as (
+        select
+            a.grupo_comercial_id,
+            a.data_emissao,
+            a.grupo_mix,
+            a.vendedor_id,
+            coalesce(a.nome_vendedor, a.vendedor_id, 'Não identificado')::text as vendedor,
+            coalesce(a.regiao, '')::text as regiao,
+            string_agg(distinct a.produto_id, ' · ' order by a.produto_id)::text as produtos,
+            string_agg(
+                distinct a.filial_id || '/' || a.pedido_id,
+                ' · ' order by a.filial_id || '/' || a.pedido_id
+            )::text as pedidos
+        from alocacoes as a
+        group by
+            a.grupo_comercial_id,
+            a.data_emissao,
+            a.grupo_mix,
+            a.vendedor_id,
+            coalesce(a.nome_vendedor, a.vendedor_id, 'Não identificado'),
+            coalesce(a.regiao, '')
+    ),
     primeira_compra_linha as (
         select
             e.grupo_comercial_id,
@@ -316,15 +337,13 @@ begin
         p.nome_grupo_comercial,
         p.data_emissao as data_expansao,
         p.grupo_mix,
-        p.produtos,
-        p.pedidos,
-        p.quantidade_pedidos,
-        p.vendedores,
-        coalesce(p.regioes, '')::text as regioes,
+        d.produtos,
+        d.pedidos,
+        d.vendedor,
+        d.regiao,
         p.segmento,
         p.valor_linha_elegivel,
         p.valor_minimo,
-        p.quantidade_vendedores,
         case
             when p.is_ka then 'Sem XP: cliente KA'
             when p.tem_data_pendente then 'Pendente: data histórica ausente'
@@ -350,23 +369,14 @@ begin
              and p.mapeamento_valido
              and p.quantidade_segmentos = 1
              and p.todas_regioes_participantes
-            then 10 else 0
-        end::numeric as xp_evento,
-        case
-            when not p.is_ka
-             and not p.tem_data_pendente
-             and not p.tem_devolucao_sem_produto
-             and p.valor_minimo is not null
-             and p.valor_linha_elegivel >= p.valor_minimo
-             and not p.tem_vendedor_ausente
-             and p.quantidade_vendedores in (1, 2)
-             and p.mapeamento_valido
-             and p.quantidade_segmentos = 1
-             and p.todas_regioes_participantes
             then 10.0 / p.quantidade_vendedores else 0
-        end::numeric as xp_por_vendedor
+        end::numeric as xp
     from primeiras as p
-    order by p.data_emissao, p.nome_grupo_comercial, p.grupo_mix;
+    inner join detalhes as d
+      on d.grupo_comercial_id = p.grupo_comercial_id
+     and d.data_emissao = p.data_emissao
+     and d.grupo_mix = p.grupo_mix
+    order by p.data_emissao, p.nome_grupo_comercial, p.grupo_mix, d.vendedor, d.regiao;
 end;
 $$;
 

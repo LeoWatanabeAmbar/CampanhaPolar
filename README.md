@@ -4,8 +4,8 @@ Painel implementado no padrão visual do Gestão Comercial, com navegação late
 
 - **Visão geral:** metas publicadas da campanha, regiões participantes, fases confirmadas, XP regional de adiantamento, cobertura por fase e detalhamento regional.
 - **Clientes novos:** resumo por região e detalhamento por vendedor, com duas linhas para triangulações e o XP atribuído a cada participante.
-- **Clientes reativados:** retornos após 6 meses em Canais ou 12 meses em Construção, com última compra, responsáveis e XP.
-- **Mix de produtos:** primeira compra das famílias mapeadas, mínimos por segmento, exclusões, pendências e XP.
+- **Clientes reativados:** resumo por região e detalhamento por vendedor dos retornos após 6 meses em Canais ou 12 meses em Construção.
+- **Mix de produtos:** resumo regional e detalhamento por vendedor da primeira compra das famílias, mínimos, exclusões, pendências e XP.
 - **Adiantamento de meta:** uma linha por região e 12 checks, com as três fases de setembro, outubro, novembro e dezembro na mesma tabela.
 
 O ícone azul da Polar em [assets/icone_polar.png](assets/icone_polar.png) é usado como favicon da aba do navegador. O logotipo horizontal permanece na interface do painel.

@@ -59,8 +59,8 @@ Descreva as telas desejadas em linguagem simples. Exemplos possíveis: visão ge
 | --- | --- | --- |
 | Visão geral | Metas publicadas, regiões participantes, cobertura das fases e XP regional de adiantamento em toda a campanha | Usuários autenticados consultam |
 | Clientes novos | Resumo de quantidade, lista e XP por região; detalhe de data, grupo, pedidos, vendedor, região, segmento, atribuição e XP | Usuários autenticados consultam |
-| Clientes reativados | Retorno do grupo após 6 meses em Canais ou 12 meses em Construção, última compra, pedidos, responsáveis, valor líquido e XP bruto | Usuários autenticados consultam |
-| Mix de produtos | Primeira compra das quatro famílias mapeadas, mínimo aplicável, exclusões de KA, pendências, atribuição e XP | Usuários autenticados consultam |
+| Clientes reativados | Resumo de quantidade, lista e XP por região; detalhe do retorno por vendedor, com duas linhas para triangulações | Usuários autenticados consultam |
+| Mix de produtos | Resumo das expansões confirmadas por região; detalhe de família, produtos, mínimo, resultado e XP por vendedor | Usuários autenticados consultam |
 | Adiantamento de meta | Uma linha por região e 12 checks: três fases para cada mês de setembro a dezembro | Usuários autenticados consultam; somente `lais.vendrasco@ambar.tech` e `leonardo.watanabe@ambar.tech` salvam |
 
 ## Identidade visual

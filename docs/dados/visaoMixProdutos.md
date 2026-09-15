@@ -4,12 +4,12 @@
 
 ## Conteúdo da página
 
-- indicadores de linhas avaliadas, expansões confirmadas, valor das linhas e XP confirmado;
-- filtros por região, família, resultado e busca por grupo, produto, pedido ou vendedor;
-- competência, primeira compra, códigos dos produtos, pedidos reunidos no dia, responsáveis e regiões;
-- valor da linha, mínimo aplicável, resultado do enquadramento e distribuição dos XP.
+- tabela inicial por região com quantidade e lista das expansões confirmadas e XP total;
+- apenas filtro de região no detalhamento;
+- data da primeira compra, códigos dos produtos, pedidos reunidos no dia e família;
+- uma linha por vendedor e região, com segmento, valor, mínimo, resultado e XP.
 
-O valor dos pedidos do mesmo grupo, data e família é somado antes de verificar o mínimo. Cada primeira compra de família que cumprir as regras gera 10 XP. Um vendedor recebe 10 XP; exatamente dois recebem 5 XP cada. O indicador não possui teto individual. Clientes KA aparecem sem XP.
+O valor dos pedidos do mesmo grupo, data e família é somado antes de verificar o mínimo. Cada primeira compra de família que cumprir as regras gera 10 XP. Um vendedor recebe 10 XP; exatamente dois aparecem em duas linhas de 5 XP cada. O indicador não possui teto individual. Clientes KA aparecem sem XP no detalhamento e não entram no resumo de expansões confirmadas.
 
 ## Consulta e regras aplicadas
 
