@@ -9,6 +9,7 @@ returns table (
     grupo_comercial_id text,
     nome_grupo_comercial text,
     data_expansao date,
+    data_primeira_compra_familia date,
     grupo_mix text,
     produtos text,
     pedidos text,
@@ -254,7 +255,7 @@ begin
         where v.valor_bruto_elegivel > 0
           and v.grupo_comercial_id is not null
     ),
-    eventos as (
+    eventos_campanha as (
         select
             a.grupo_comercial_id,
             a.data_emissao,
@@ -281,6 +282,8 @@ begin
             bool_or(a.is_regiao_participante) as tem_regiao_participante,
             bool_and(a.is_regiao_participante) as todas_regioes_participantes
         from alocacoes as a
+        where a.data_emissao >= date '2026-09-01'
+          and a.data_emissao < date '2027-01-01'
         group by a.grupo_comercial_id, a.data_emissao, a.grupo_mix
     ),
     detalhes as (
@@ -297,6 +300,8 @@ begin
                 ' · ' order by a.filial_id || '/' || a.pedido_id
             )::text as pedidos
         from alocacoes as a
+        where a.data_emissao >= date '2026-09-01'
+          and a.data_emissao < date '2027-01-01'
         group by
             a.grupo_comercial_id,
             a.data_emissao,
@@ -307,16 +312,17 @@ begin
     ),
     primeira_compra_linha as (
         select
-            e.grupo_comercial_id,
-            e.grupo_mix,
-            min(e.data_emissao)::date as data_primeira_compra
-        from eventos as e
-        group by e.grupo_comercial_id, e.grupo_mix
+            a.grupo_comercial_id,
+            a.grupo_mix,
+            min(a.data_emissao)::date as data_primeira_compra_familia
+        from alocacoes as a
+        group by a.grupo_comercial_id, a.grupo_mix
     ),
-    candidatos as (
+    compras_campanha as (
         select
             e.*,
             g.nome_grupo_comercial,
+            p.data_primeira_compra_familia,
             ka.grupo_comercial_id is not null as is_ka,
             dp.grupo_comercial_id is not null as tem_data_pendente,
             case
@@ -326,40 +332,27 @@ begin
                 when e.segmento = 'Canais' and e.grupo_mix = 'Suporte de Bancada' then 1000
                 when e.segmento = 'Canais' and e.grupo_mix = 'Grelha + Porta Grelha' then 1000
                 when e.segmento = 'Canais' and e.grupo_mix = 'CPP 009' then 2200
-            end::numeric as valor_minimo,
-            row_number() over (
-                partition by e.grupo_comercial_id, e.grupo_mix
-                order by e.data_emissao
-            ) as ordem_campanha
-        from eventos as e
+            end::numeric as valor_minimo
+        from eventos_campanha as e
         inner join primeira_compra_linha as p
           on p.grupo_comercial_id = e.grupo_comercial_id
          and p.grupo_mix = e.grupo_mix
         inner join grupos_dim as g on g.grupo_comercial_id = e.grupo_comercial_id
         left join grupos_ka as ka on ka.grupo_comercial_id = e.grupo_comercial_id
         left join grupos_com_data_pendente as dp on dp.grupo_comercial_id = e.grupo_comercial_id
-        where e.data_emissao >= date '2026-09-01'
-          and e.data_emissao < date '2027-01-01'
-          and (
+        where (
               p_competencia is null
               or (
                   e.data_emissao >= p_competencia
                   and e.data_emissao < (p_competencia + interval '1 month')::date
               )
           )
-          and (
-              e.data_emissao = p.data_primeira_compra
-              or dp.grupo_comercial_id is not null
-          )
-          and e.tem_regiao_participante
-    ),
-    primeiras as (
-        select * from candidatos where ordem_campanha = 1
     )
     select
         p.grupo_comercial_id,
         p.nome_grupo_comercial,
         p.data_emissao as data_expansao,
+        p.data_primeira_compra_familia,
         p.grupo_mix,
         d.produtos,
         d.pedidos,
@@ -371,6 +364,8 @@ begin
         case
             when p.is_ka then 'Sem XP: cliente KA'
             when p.tem_data_pendente then 'Pendente: data histórica ausente'
+            when p.data_emissao <> p.data_primeira_compra_familia
+                then 'Sem XP: família comprada anteriormente'
             when p.tem_devolucao_no_pedido then 'Pendente: devolução na nota do pedido'
             when p.valor_minimo is null then 'Sem XP: família fora do segmento'
             when p.valor_linha_elegivel < p.valor_minimo then 'Sem XP: abaixo do mínimo'
@@ -379,12 +374,13 @@ begin
             when not p.mapeamento_valido then 'Pendente: região ou segmento'
             when p.quantidade_segmentos <> 1 then 'Pendente: segmentos divergentes'
             when not p.todas_regioes_participantes then 'Pendente: região sem meta'
-            when p.quantidade_vendedores = 1 then 'Confirmado: integral'
-            else 'Confirmado: divisão 50/50'
+            when p.quantidade_vendedores = 1 then 'Elegível: integral'
+            else 'Elegível: divisão 50/50'
         end::text as situacao_evento,
         case
             when not p.is_ka
              and not p.tem_data_pendente
+             and p.data_emissao = p.data_primeira_compra_familia
              and not p.tem_devolucao_no_pedido
              and p.valor_minimo is not null
              and p.valor_linha_elegivel >= p.valor_minimo
@@ -395,7 +391,7 @@ begin
              and p.todas_regioes_participantes
             then 10.0 / p.quantidade_vendedores else 0
         end::numeric as xp
-    from primeiras as p
+    from compras_campanha as p
     inner join detalhes as d
       on d.grupo_comercial_id = p.grupo_comercial_id
      and d.data_emissao = p.data_emissao

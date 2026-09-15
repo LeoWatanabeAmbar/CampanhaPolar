@@ -18,7 +18,7 @@ LOAD_FUNCTION = "campanha_polar_carregar_mix_produtos"
 
 
 class ProductMixRepository:
-    """Carrega as primeiras compras das famílias de mix durante a campanha."""
+    """Carrega as compras das famílias de mix e sua elegibilidade na campanha."""
 
     def __init__(self, client: Any):
         self.client = client
@@ -61,8 +61,9 @@ class ProductMixRepository:
                     "A consulta do mix de produtos devolveu um registro inválido."
                 )
             required = {
-                "grupo_comercial_id", "nome_grupo_comercial", "data_expansao", "grupo_mix",
-                "produtos", "pedidos", "vendedor", "regiao", "segmento",
+                "grupo_comercial_id", "nome_grupo_comercial", "data_expansao",
+                "data_primeira_compra_familia", "grupo_mix", "produtos", "pedidos",
+                "vendedor", "regiao", "segmento",
                 "valor_linha_elegivel", "valor_minimo", "situacao_evento", "xp",
             }
             if not required.issubset(item):
@@ -73,8 +74,12 @@ class ProductMixRepository:
             group_id = str(item.get("grupo_comercial_id") or "").strip()
             group_name = str(item.get("nome_grupo_comercial") or "").strip()
             event_date = item.get("data_expansao")
+            first_family_purchase = item.get("data_primeira_compra_familia")
             product_group = str(item.get("grupo_mix") or "").strip()
-            if not group_id or not group_name or not event_date or not product_group:
+            if (
+                not group_id or not group_name or not event_date
+                or not first_family_purchase or not product_group
+            ):
                 raise DataAccessError(
                     "A consulta do mix de produtos devolveu identificação incompleta."
                 )
@@ -82,6 +87,7 @@ class ProductMixRepository:
                 "grupo_comercial_id": group_id,
                 "nome_grupo_comercial": group_name,
                 "data_expansao": str(event_date),
+                "data_primeira_compra_familia": str(first_family_purchase),
                 "grupo_mix": product_group,
                 "produtos": str(item.get("produtos") or ""),
                 "pedidos": str(item.get("pedidos") or ""),

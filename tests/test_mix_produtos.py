@@ -16,6 +16,7 @@ def sample_rows():
             "grupo_comercial_id": "F213",
             "nome_grupo_comercial": "FIPAL CONSTRUTORA",
             "data_expansao": "2026-09-01",
+            "data_primeira_compra_familia": "2026-09-01",
             "grupo_mix": "Hydrofix",
             "produtos": "002920 · 002921",
             "pedidos": "01101/058349",
@@ -24,13 +25,14 @@ def sample_rows():
             "segmento": "Construção",
             "valor_linha_elegivel": 3500,
             "valor_minimo": 3000,
-            "situacao_evento": "Confirmado: integral",
+            "situacao_evento": "Elegível: integral",
             "xp": 10,
         },
         {
             "grupo_comercial_id": "F224",
             "nome_grupo_comercial": "PLANO INCORPORAÇÕES",
             "data_expansao": "2026-09-10",
+            "data_primeira_compra_familia": "2026-09-10",
             "grupo_mix": "Suporte de Bancada",
             "produtos": "002917",
             "pedidos": "01101/058691 · 01101/058697",
@@ -39,13 +41,14 @@ def sample_rows():
             "segmento": "Construção",
             "valor_linha_elegivel": 10000,
             "valor_minimo": 9000,
-            "situacao_evento": "Confirmado: divisão 50/50",
+            "situacao_evento": "Elegível: divisão 50/50",
             "xp": 5,
         },
         {
             "grupo_comercial_id": "F224",
             "nome_grupo_comercial": "PLANO INCORPORAÇÕES",
             "data_expansao": "2026-09-10",
+            "data_primeira_compra_familia": "2026-09-10",
             "grupo_mix": "Suporte de Bancada",
             "produtos": "002917",
             "pedidos": "01101/058691 · 01101/058697",
@@ -54,13 +57,14 @@ def sample_rows():
             "segmento": "Construção",
             "valor_linha_elegivel": 10000,
             "valor_minimo": 9000,
-            "situacao_evento": "Confirmado: divisão 50/50",
+            "situacao_evento": "Elegível: divisão 50/50",
             "xp": 5,
         },
         {
             "grupo_comercial_id": "F999",
             "nome_grupo_comercial": "GRUPO COM DEVOLUÇÃO",
             "data_expansao": "2026-09-12",
+            "data_primeira_compra_familia": "2026-09-12",
             "grupo_mix": "CPP 009",
             "produtos": "000010",
             "pedidos": "01101/058999",
@@ -76,6 +80,7 @@ def sample_rows():
             "grupo_comercial_id": "C02",
             "nome_grupo_comercial": "MRV",
             "data_expansao": "2026-09-13",
+            "data_primeira_compra_familia": "2024-01-15",
             "grupo_mix": "Hydrofix",
             "produtos": "002920",
             "pedidos": "01101/059000",
@@ -85,6 +90,22 @@ def sample_rows():
             "valor_linha_elegivel": 4000,
             "valor_minimo": 3000,
             "situacao_evento": "Sem XP: cliente KA",
+            "xp": 0,
+        },
+        {
+            "grupo_comercial_id": "F213",
+            "nome_grupo_comercial": "FIPAL CONSTRUTORA",
+            "data_expansao": "2026-10-05",
+            "data_primeira_compra_familia": "2026-09-01",
+            "grupo_mix": "Hydrofix",
+            "produtos": "002920",
+            "pedidos": "01101/059100",
+            "vendedor": "Vendedor A",
+            "regiao": "SUL 01",
+            "segmento": "Construção",
+            "valor_linha_elegivel": 5000,
+            "valor_minimo": 3000,
+            "situacao_evento": "Sem XP: família comprada anteriormente",
             "xp": 0,
         },
     ]
@@ -156,6 +177,11 @@ def test_sql_applies_mix_rules():
     assert "n.nota_fiscal_id = trim(d.nota_fiscal_original_id)" in sql
     assert "dv.pedido_id = v.pedido_id" in sql
     assert "pendente: devolução na nota do pedido" in sql
+    assert "eventos_campanha as (" in sql
+    assert "data_primeira_compra_familia" in sql
+    assert "sem xp: família comprada anteriormente" in sql
+    assert "from compras_campanha as p" in sql
+    assert "from primeiras as p" not in sql
     assert "grupos_com_devolucao_sem_produto" not in sql
     assert "then 10.0 / p.quantidade_vendedores" in sql
     assert "detalhes as (" in sql
@@ -188,9 +214,12 @@ def test_page_renders_mix_summary_region_filter_and_details():
     assert all("01101/" not in value for value in detail["Pedido de venda"])
     assert detail.iloc[0]["Pedido de venda"] == "058349"
     assert list(detail.columns) == [
-        "Data", "Grupo comercial", "Família", "Produtos", "Pedido de venda",
-        "Vendedores", "Região", "Segmento", "Valor da linha", "Mínimo", "Resultado", "XP",
+        "Data da compra", "Primeira compra da família", "Grupo comercial", "Família",
+        "Produtos", "Pedido de venda", "Vendedores", "Região", "Segmento",
+        "Valor da linha", "Mínimo", "Resultado", "XP",
     ]
+    assert "Sem XP: cliente KA" in set(detail["Resultado"])
+    assert "Sem XP: família comprada anteriormente" in set(detail["Resultado"])
     triangulation = detail[detail["Grupo comercial"] == "PLANO INCORPORAÇÕES"]
     assert list(triangulation["Vendedores"]) == ["Vendedor B", "Vendedor C"]
     assert list(triangulation["Região"]) == ["NORTE 01", "NORTE 02"]

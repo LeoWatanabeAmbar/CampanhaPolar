@@ -651,21 +651,22 @@ def render_reactivated_customers(repository: ReactivatedCustomersRepository):
 
 
 def render_product_mix(repository: ProductMixRepository):
-    """Exibe as primeiras compras das famílias de expansão de mix."""
+    """Exibe todas as compras das famílias de mix e sua elegibilidade."""
     render_page_header(
         "Mix de produtos",
-        "Acompanhe a primeira compra de cada família, seus mínimos e os XP atribuídos.",
+        "Acompanhe todas as compras das famílias mapeadas e entenda sua elegibilidade.",
     )
     rows = repository.load()
     if not rows:
-        st.info("Nenhum evento de expansão de mix foi identificado na campanha.")
+        st.info("Nenhuma compra dos produtos de mix foi identificada na campanha.")
         return
 
     frame = pd.DataFrame(rows)
     if not validate_customer_detail_contract(
         frame,
-        {"grupo_comercial_id", "nome_grupo_comercial", "data_expansao", "grupo_mix",
-         "produtos", "pedidos", "vendedor", "regiao", "segmento",
+        {"grupo_comercial_id", "nome_grupo_comercial", "data_expansao",
+         "data_primeira_compra_familia", "grupo_mix", "produtos", "pedidos",
+         "vendedor", "regiao", "segmento",
          "valor_linha_elegivel", "valor_minimo", "situacao_evento", "xp"},
         "mix_produtos.sql",
     ):
@@ -678,7 +679,7 @@ def render_product_mix(repository: ProductMixRepository):
     summary = build_product_mix_region_summary(frame)
     render_region_summary_table(summary, "Lista das expansões")
 
-    st.subheader("Detalhamento das expansões")
+    st.subheader("Todas as compras dos produtos de mix")
     region_names = sorted({
         str(region).strip() for region in frame["regiao"] if str(region).strip()
     })
@@ -690,14 +691,18 @@ def render_product_mix(repository: ProductMixRepository):
 
     st.caption(
         "Cada linha representa a atribuição de um vendedor. Pedidos triangulados aparecem em "
-        "duas linhas, uma para cada vendedor e região."
+        "duas linhas. A coluna Resultado explica por que a compra é ou não elegível."
     )
     display = filtered.copy()
     event_date = pd.to_datetime(display["data_expansao"], errors="coerce")
     display["data_expansao"] = event_date.dt.strftime("%d/%m/%Y")
+    display["data_primeira_compra_familia"] = pd.to_datetime(
+        display["data_primeira_compra_familia"], errors="coerce"
+    ).dt.strftime("%d/%m/%Y")
     display["pedidos"] = display["pedidos"].map(format_sales_orders)
     display = display.rename(columns={
-        "data_expansao": "Data",
+        "data_expansao": "Data da compra",
+        "data_primeira_compra_familia": "Primeira compra da família",
         "nome_grupo_comercial": "Grupo comercial",
         "grupo_mix": "Família",
         "produtos": "Produtos",
@@ -712,8 +717,8 @@ def render_product_mix(repository: ProductMixRepository):
     })
     st.dataframe(
         display[[
-            "Data", "Grupo comercial", "Família", "Produtos", "Pedido de venda",
-            "Vendedores", "Região", "Segmento",
+            "Data da compra", "Primeira compra da família", "Grupo comercial", "Família",
+            "Produtos", "Pedido de venda", "Vendedores", "Região", "Segmento",
             "Valor da linha", "Mínimo", "Resultado", "XP",
         ]],
         column_config={
