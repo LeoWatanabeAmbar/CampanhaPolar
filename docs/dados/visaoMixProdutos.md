@@ -4,7 +4,7 @@
 
 ## Conteúdo da página
 
-- tabela inicial agrupada por região, com cada expansão confirmada em uma linha real; quantidade e XP total aparecem somente na primeira linha do grupo regional;
+- tabela inicial com uma linha por região; dentro da célula da lista, cada expansão confirmada aparece abaixo da anterior, enquanto quantidade e XP permanecem únicos para a região;
 - apenas filtro de região no detalhamento;
 - data da primeira compra, códigos dos produtos, pedidos reunidos no dia e família;
 - uma linha por vendedor e região, com segmento, valor, mínimo, resultado e XP.

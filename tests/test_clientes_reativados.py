@@ -135,22 +135,12 @@ def test_page_renders_reactivated_summary_region_filter_and_details():
     assert len(app.metric) == 0
     assert len(app.selectbox) == 1
     assert app.selectbox[0].label == "Região"
-    assert len(app.dataframe) == 2
-    assert list(app.dataframe[0].value.columns) == [
-        "Região",
-        "Quantidade de clientes reativados",
-        "Lista dos clientes reativados",
-        "Total XP",
-    ]
-    regional_rows = app.dataframe[0].value[
-        app.dataframe[0].value["Região"] == "NORTE 01"
-    ]
-    assert list(regional_rows["Lista dos clientes reativados"]) == [
-        "GRUPO PENDENTE", "URBEN PARTICIPAÇÕES",
-    ]
-    assert regional_rows["Quantidade de clientes reativados"].notna().sum() == 1
-    assert regional_rows["Total XP"].notna().sum() == 1
-    detail = app.dataframe[1].value
+    assert len(app.dataframe) == 1
+    summary_html = next(
+        block.value for block in app.markdown if "polar-summary-table" in block.value
+    )
+    assert "GRUPO PENDENTE</div><div class='polar-summary-item'>URBEN PARTICIPAÇÕES" in summary_html
+    detail = app.dataframe[0].value
     assert list(detail.columns) == [
         "Data", "Última compra", "Prazo", "Grupo comercial", "Pedido de venda",
         "Vendedores", "Região", "Segmento", "Atribuição", "XP",

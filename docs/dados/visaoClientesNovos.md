@@ -4,7 +4,7 @@
 
 ## Conteúdo da página
 
-- tabela inicial agrupada por região, com cada cliente em uma linha real; quantidade e XP total aparecem somente na primeira linha do grupo regional;
+- tabela inicial com uma linha por região; dentro da célula da lista, cada cliente aparece abaixo do anterior, enquanto quantidade e XP permanecem únicos para a região;
 - filtro de região no detalhamento;
 - detalhe com data, grupo comercial, pedido de venda, vendedor, região, segmento, atribuição e XP;
 - uma linha por vendedor e região: uma triangulação com dois participantes aparece em duas linhas.

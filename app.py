@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from datetime import date
+from html import escape
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -284,24 +285,55 @@ def build_product_mix_region_summary(frame: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(summary, columns=columns)
 
 
-def expand_summary_list_rows(summary: pd.DataFrame, list_column: str) -> pd.DataFrame:
-    """Transforma cada item da lista regional em uma linha real da tabela."""
-    if summary.empty or list_column not in summary:
-        return summary.copy()
-
-    region_column = str(summary.columns[0])
-    expanded = []
+def build_region_summary_html(summary: pd.DataFrame, list_column: str) -> str:
+    """Monta uma linha por região e preserva cada item da lista em sua própria linha."""
+    columns = list(summary.columns)
+    header = "".join(f"<th scope='col'>{escape(str(column))}</th>" for column in columns)
+    body = []
     for record in summary.to_dict("records"):
         items = str(record.get(list_column) or "").splitlines() or [""]
-        for position, item in enumerate(items):
-            row = record.copy()
-            row[list_column] = item
-            if position:
-                for column in summary.columns:
-                    if column not in (region_column, list_column):
-                        row[column] = None
-            expanded.append(row)
-    return pd.DataFrame(expanded, columns=summary.columns)
+        items_html = "".join(
+            f"<div class='polar-summary-item'>{escape(item)}</div>" for item in items
+        )
+        count = int(record[columns[1]])
+        xp = f"{float(record[columns[3]]):g} XP"
+        body.append(
+            "<tr>"
+            f"<td>{escape(str(record[columns[0]]))}</td>"
+            f"<td class='polar-summary-number'>{count}</td>"
+            f"<td>{items_html}</td>"
+            f"<td class='polar-summary-number'>{escape(xp)}</td>"
+            "</tr>"
+        )
+    if not body:
+        body.append("<tr><td colspan='4'>Nenhum registro confirmado.</td></tr>")
+    return (
+        "<style>"
+        ".polar-summary-wrap{overflow-x:auto;border:1px solid var(--polar-border);"
+        "border-radius:10px;margin:.25rem 0 1rem;background:#fff}"
+        ".polar-summary-table{border-collapse:collapse;table-layout:fixed;width:100%;"
+        "min-width:800px;color:var(--polar-ink);font-size:.93rem}"
+        ".polar-summary-table th{background:#f7f9fc;color:#5c6f86;font-weight:500;"
+        "text-align:left}"
+        ".polar-summary-table th,.polar-summary-table td{border-bottom:1px solid "
+        "var(--polar-border);border-right:1px solid var(--polar-border);padding:.75rem;"
+        "vertical-align:middle}"
+        ".polar-summary-table th:nth-child(1){width:17%}"
+        ".polar-summary-table th:nth-child(2){width:25%}"
+        ".polar-summary-table th:nth-child(3){width:45%}"
+        ".polar-summary-table th:nth-child(4){width:13%}"
+        ".polar-summary-table th:last-child,.polar-summary-table td:last-child{border-right:0}"
+        ".polar-summary-table tbody tr:last-child td{border-bottom:0}"
+        ".polar-summary-number{text-align:right;white-space:nowrap}"
+        ".polar-summary-item{line-height:1.55;overflow-wrap:anywhere}"
+        "</style>"
+        "<div class='polar-summary-wrap'><table class='polar-summary-table'>"
+        f"<thead><tr>{header}</tr></thead><tbody>{''.join(body)}</tbody></table></div>"
+    )
+
+
+def render_region_summary_table(summary: pd.DataFrame, list_column: str):
+    st.markdown(build_region_summary_html(summary, list_column), unsafe_allow_html=True)
 
 
 def validate_customer_detail_contract(
@@ -493,22 +525,7 @@ def render_new_customers(repository: NewCustomersRepository):
         "duas regiões, o XP é dividido entre elas."
     )
     summary = build_new_customers_region_summary(frame)
-    display_summary = expand_summary_list_rows(summary, "Lista dos clientes novos")
-    st.dataframe(
-        display_summary,
-        column_config={
-            "Quantidade de clientes novos": st.column_config.NumberColumn(
-                "Quantidade de clientes novos", format="%d"
-            ),
-            "Lista dos clientes novos": st.column_config.TextColumn(
-                "Lista dos clientes novos", width="large"
-            ),
-            "Total XP": st.column_config.NumberColumn("Total XP", format="%.0f XP"),
-        },
-        hide_index=True,
-        width="stretch",
-        row_height=40,
-    )
+    render_region_summary_table(summary, "Lista dos clientes novos")
 
     st.subheader("Detalhamento dos clientes")
     region_names = sorted({
@@ -576,22 +593,7 @@ def render_reactivated_customers(repository: ReactivatedCustomersRepository):
         "linhas de uma triangulação é somado na respectiva região."
     )
     summary = build_reactivated_customers_region_summary(frame)
-    display_summary = expand_summary_list_rows(summary, "Lista dos clientes reativados")
-    st.dataframe(
-        display_summary,
-        column_config={
-            "Quantidade de clientes reativados": st.column_config.NumberColumn(
-                "Quantidade de clientes reativados", format="%d"
-            ),
-            "Lista dos clientes reativados": st.column_config.TextColumn(
-                "Lista dos clientes reativados", width="large"
-            ),
-            "Total XP": st.column_config.NumberColumn("Total XP", format="%.0f XP"),
-        },
-        hide_index=True,
-        width="stretch",
-        row_height=40,
-    )
+    render_region_summary_table(summary, "Lista dos clientes reativados")
 
     st.subheader("Detalhamento dos clientes")
     region_names = sorted({
@@ -667,22 +669,7 @@ def render_product_mix(repository: ProductMixRepository):
         "e família é contada uma vez por região."
     )
     summary = build_product_mix_region_summary(frame)
-    display_summary = expand_summary_list_rows(summary, "Lista das expansões")
-    st.dataframe(
-        display_summary,
-        column_config={
-            "Quantidade de expansões": st.column_config.NumberColumn(
-                "Quantidade de expansões", format="%d"
-            ),
-            "Lista das expansões": st.column_config.TextColumn(
-                "Lista das expansões", width="large"
-            ),
-            "Total XP": st.column_config.NumberColumn("Total XP", format="%.0f XP"),
-        },
-        hide_index=True,
-        width="stretch",
-        row_height=40,
-    )
+    render_region_summary_table(summary, "Lista das expansões")
 
     st.subheader("Detalhamento das expansões")
     region_names = sorted({

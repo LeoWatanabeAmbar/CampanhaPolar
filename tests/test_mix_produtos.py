@@ -179,12 +179,12 @@ def test_page_renders_mix_summary_region_filter_and_details():
     assert len(app.metric) == 0
     assert len(app.selectbox) == 1
     assert app.selectbox[0].label == "Região"
-    assert len(app.dataframe) == 2
-    assert list(app.dataframe[0].value.columns) == [
-        "Região", "Quantidade de expansões", "Lista das expansões", "Total XP",
-    ]
-    assert all("\n" not in value for value in app.dataframe[0].value["Lista das expansões"])
-    detail = app.dataframe[1].value
+    assert len(app.dataframe) == 1
+    summary_html = next(
+        block.value for block in app.markdown if "polar-summary-table" in block.value
+    )
+    assert "Lista das expansões" in summary_html
+    detail = app.dataframe[0].value
     assert list(detail.columns) == [
         "Data", "Grupo comercial", "Família", "Produtos", "Pedido de venda",
         "Vendedores", "Região", "Segmento", "Valor da linha", "Mínimo", "Resultado", "XP",
@@ -233,7 +233,7 @@ def test_mix_region_summary_counts_expansion_once_and_ignores_zero_xp():
 def test_mix_region_summary_lists_each_expansion_on_its_own_line():
     import pandas as pd
 
-    from app import build_product_mix_region_summary
+    from app import build_product_mix_region_summary, build_region_summary_html
 
     rows = sample_rows()
     rows.append({
@@ -248,3 +248,9 @@ def test_mix_region_summary_lists_each_expansion_on_its_own_line():
         "FIPAL CONSTRUTORA — Hydrofix",
         "OUTRA CONSTRUTORA — Grelha + Porta Grelha",
     ]
+    summary_html = build_region_summary_html(summary.reset_index(), "Lista das expansões")
+    assert summary_html.count("SUL 01") == 1
+    assert (
+        "FIPAL CONSTRUTORA — Hydrofix</div>"
+        "<div class='polar-summary-item'>OUTRA CONSTRUTORA — Grelha + Porta Grelha"
+    ) in summary_html

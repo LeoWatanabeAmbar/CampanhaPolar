@@ -135,22 +135,13 @@ def test_page_renders_only_region_filter_summary_and_detailed_table():
     assert len(app.metric) == 0
     assert len(app.selectbox) == 1
     assert app.selectbox[0].label == "Região"
-    assert len(app.dataframe) == 2
+    assert len(app.dataframe) == 1
+    summary_html = next(
+        block.value for block in app.markdown if "polar-summary-table" in block.value
+    )
+    assert summary_html.count("<tr>") == 4
+    assert "GRUPO PENDENTE</div><div class='polar-summary-item'>PLANO INCORPORAÇÕES" in summary_html
     assert list(app.dataframe[0].value.columns) == [
-        "Região",
-        "Quantidade de clientes novos",
-        "Lista dos clientes novos",
-        "Total XP",
-    ]
-    regional_rows = app.dataframe[0].value[
-        app.dataframe[0].value["Região"] == "NORTE 01"
-    ]
-    assert list(regional_rows["Lista dos clientes novos"]) == [
-        "GRUPO PENDENTE", "PLANO INCORPORAÇÕES",
-    ]
-    assert regional_rows["Quantidade de clientes novos"].notna().sum() == 1
-    assert regional_rows["Total XP"].notna().sum() == 1
-    assert list(app.dataframe[1].value.columns) == [
         "Data",
         "Grupo comercial",
         "Pedido de venda",
@@ -160,9 +151,9 @@ def test_page_renders_only_region_filter_summary_and_detailed_table():
         "Atribuição",
         "XP",
     ]
-    assert len(app.dataframe[1].value) == 4
-    triangulation = app.dataframe[1].value[
-        app.dataframe[1].value["Grupo comercial"] == "PLANO INCORPORAÇÕES"
+    assert len(app.dataframe[0].value) == 4
+    triangulation = app.dataframe[0].value[
+        app.dataframe[0].value["Grupo comercial"] == "PLANO INCORPORAÇÕES"
     ]
     assert list(triangulation["Vendedores"]) == ["Vendedor B", "Vendedor C"]
     assert list(triangulation["Região"]) == ["NORTE 01", "NORTE 02"]
