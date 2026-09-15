@@ -284,6 +284,22 @@ def build_product_mix_region_summary(frame: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(summary, columns=columns)
 
 
+def validate_customer_detail_contract(
+    frame: pd.DataFrame,
+    required_columns: set[str],
+    sql_filename: str,
+) -> bool:
+    """Evita falha quando o app e a função RPC ainda estão em versões diferentes."""
+    missing = required_columns.difference(frame.columns)
+    if not missing:
+        return True
+    st.warning(
+        "Esta página recebeu o formato anterior dos dados. Reinicie o aplicativo no "
+        f"Streamlit Cloud e execute novamente `sql/{sql_filename}` no Supabase."
+    )
+    return False
+
+
 def configuration():
     """Lê a configuração pública necessária para Auth e Data API."""
     try:
@@ -444,6 +460,13 @@ def render_new_customers(repository: NewCustomersRepository):
         return
 
     frame = pd.DataFrame(rows)
+    if not validate_customer_detail_contract(
+        frame,
+        {"grupo_comercial_id", "nome_grupo_comercial", "data_primeira_compra", "pedidos",
+         "vendedor", "regiao", "segmento", "situacao_atribuicao", "xp"},
+        "clientes_novos.sql",
+    ):
+        return
     st.subheader("Resumo por região")
     st.caption(
         "Cada grupo comercial é contado uma vez em cada região participante. Em eventos com "
@@ -513,6 +536,14 @@ def render_reactivated_customers(repository: ReactivatedCustomersRepository):
         return
 
     frame = pd.DataFrame(rows)
+    if not validate_customer_detail_contract(
+        frame,
+        {"grupo_comercial_id", "nome_grupo_comercial", "data_reativacao",
+         "data_ultima_compra", "prazo_meses", "pedidos", "vendedor", "regiao",
+         "segmento", "situacao_atribuicao", "xp"},
+        "clientes_reativados.sql",
+    ):
+        return
     st.subheader("Resumo por região")
     st.caption(
         "Cada grupo comercial é contado uma vez em cada região participante. O XP das duas "
@@ -590,6 +621,14 @@ def render_product_mix(repository: ProductMixRepository):
         return
 
     frame = pd.DataFrame(rows)
+    if not validate_customer_detail_contract(
+        frame,
+        {"grupo_comercial_id", "nome_grupo_comercial", "data_expansao", "grupo_mix",
+         "produtos", "pedidos", "vendedor", "regiao", "segmento",
+         "valor_linha_elegivel", "valor_minimo", "situacao_evento", "xp"},
+        "mix_produtos.sql",
+    ):
+        return
     st.subheader("Resumo por região")
     st.caption(
         "O resumo considera somente expansões confirmadas. Cada combinação de grupo comercial "
@@ -846,8 +885,8 @@ def main():
         if st.button("Buscar versão atual"):
             st.session_state.pop("advance_scope", None)
             st.rerun()
-    except DataAccessError:
-        st.error("Não foi possível acessar os registros pela Data API do Supabase. Tente novamente.")
+    except DataAccessError as error:
+        st.error(str(error))
 
 
 if __name__ == "__main__":

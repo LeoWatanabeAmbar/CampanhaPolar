@@ -171,6 +171,25 @@ def test_page_renders_mix_summary_region_filter_and_details():
     assert list(triangulation["XP"]) == [5.0, 5.0]
 
 
+def test_page_handles_previous_data_contract_without_keyerror():
+    legacy_row = {
+        "grupo_comercial_id": "F213",
+        "nome_grupo_comercial": "FIPAL CONSTRUTORA",
+        "data_expansao": "2026-09-01",
+        "grupo_mix": "Hydrofix",
+        "regioes": "SUL 01",
+        "xp_por_vendedor": 10,
+    }
+    app = AppTest.from_function(page_runner)
+    app.session_state["repo"] = SimpleNamespace(load=lambda: [legacy_row])
+    app.run(timeout=15)
+
+    assert not app.exception
+    assert len(app.warning) == 1
+    assert "formato anterior" in app.warning[0].value
+    assert "mix_produtos.sql" in app.warning[0].value
+
+
 def test_mix_region_summary_counts_expansion_once_and_ignores_zero_xp():
     import pandas as pd
 

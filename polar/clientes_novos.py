@@ -47,6 +47,15 @@ class NewCustomersRepository:
         for item in data:
             if not isinstance(item, dict):
                 raise DataAccessError("A consulta de clientes novos devolveu um registro inválido.")
+            required = {
+                "grupo_comercial_id", "nome_grupo_comercial", "data_primeira_compra",
+                "pedidos", "vendedor", "regiao", "segmento", "situacao_atribuicao", "xp",
+            }
+            if not required.issubset(item):
+                raise DataAccessError(
+                    "A função de clientes novos está desatualizada. Execute novamente "
+                    "sql/clientes_novos.sql no Supabase."
+                )
             group_id = str(item.get("grupo_comercial_id") or "").strip()
             group_name = str(item.get("nome_grupo_comercial") or "").strip()
             first_purchase = item.get("data_primeira_compra")

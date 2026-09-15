@@ -53,6 +53,16 @@ class ProductMixRepository:
                 raise DataAccessError(
                     "A consulta do mix de produtos devolveu um registro inválido."
                 )
+            required = {
+                "grupo_comercial_id", "nome_grupo_comercial", "data_expansao", "grupo_mix",
+                "produtos", "pedidos", "vendedor", "regiao", "segmento",
+                "valor_linha_elegivel", "valor_minimo", "situacao_evento", "xp",
+            }
+            if not required.issubset(item):
+                raise DataAccessError(
+                    "A função de mix de produtos está desatualizada. Execute novamente "
+                    "sql/mix_produtos.sql no Supabase."
+                )
             group_id = str(item.get("grupo_comercial_id") or "").strip()
             group_name = str(item.get("nome_grupo_comercial") or "").strip()
             event_date = item.get("data_expansao")

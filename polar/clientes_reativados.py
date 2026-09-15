@@ -57,6 +57,16 @@ class ReactivatedCustomersRepository:
                 raise DataAccessError(
                     "A consulta de clientes reativados devolveu um registro inválido."
                 )
+            required = {
+                "grupo_comercial_id", "nome_grupo_comercial", "data_reativacao",
+                "data_ultima_compra", "prazo_meses", "pedidos", "vendedor", "regiao",
+                "segmento", "situacao_atribuicao", "xp",
+            }
+            if not required.issubset(item):
+                raise DataAccessError(
+                    "A função de clientes reativados está desatualizada. Execute novamente "
+                    "sql/clientes_reativados.sql no Supabase."
+                )
             group_id = str(item.get("grupo_comercial_id") or "").strip()
             group_name = str(item.get("nome_grupo_comercial") or "").strip()
             activation_date = item.get("data_reativacao")
