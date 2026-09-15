@@ -1,7 +1,7 @@
 """Painel Streamlit da campanha Polar."""
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 from html import escape
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -22,7 +22,7 @@ from polar.adiantamento import (
 from polar.clientes_novos import NewCustomersRepository
 from polar.clientes_reativados import ReactivatedCustomersRepository
 from polar.mix_produtos import ProductMixRepository
-from polar.vendas import SEPTEMBER, SalesRepository, calculate_region_results
+from polar.vendas import SalesRepository, calculate_cumulative_region_results
 
 MONTHS = {9: "Setembro", 10: "Outubro", 11: "Novembro", 12: "Dezembro"}
 MONTH_ABBREVIATIONS = {9: "Set", 10: "Out", 11: "Nov", 12: "Dez"}
@@ -512,49 +512,66 @@ def render_overview(repository: Repository):
     )
 
 
-def render_quadrimester_sales(repository: SalesRepository):
-    """Exibe o ritmo de setembro e o XP atual calculado por região."""
+def render_quadrimester_sales(repository: SalesRepository, reference: date | None = None):
+    """Exibe o acumulado do quadrimestre até o mês e o dia de referência."""
+    reference = reference or datetime.now(ZoneInfo("America/Sao_Paulo")).date()
+    rows_by_month = repository.load_through(reference)
+    requested_month = max(rows_by_month)
+    available_rows = {month: rows for month, rows in rows_by_month.items() if rows}
+    current_month = max(available_rows) if available_rows else requested_month
     render_page_header(
         "Venda no Quadrimestre",
-        "Compare as vendas de setembro com a meta proporcional aos dias úteis decorridos.",
-        SEPTEMBER,
+        "Compare as vendas acumuladas com as metas do quadrimestre disponíveis até hoje.",
+        current_month,
     )
-    rows = repository.load(SEPTEMBER)
-    if not rows:
-        st.info("A meta de setembro ainda não está disponível para as regiões participantes.")
+    if not available_rows:
+        st.info("Ainda não há metas disponíveis para as regiões participantes.")
         return
+    if current_month < requested_month:
+        st.warning(
+            f"A meta de {MONTHS[requested_month.month].lower()} ainda não está disponível. "
+            f"O acumulado abaixo termina em {MONTHS[current_month.month].lower()}."
+        )
 
-    results = calculate_region_results(rows, SEPTEMBER)
+    results = calculate_cumulative_region_results(available_rows, reference)
     frame = pd.DataFrame(results)
-    reference = date.fromisoformat(str(frame.iloc[0]["data_referencia"]))
     elapsed = int(frame.iloc[0]["dias_uteis_decorridos"])
     total_days = int(frame.iloc[0]["dias_uteis_mes"])
     remaining = int(frame.iloc[0]["dias_uteis_restantes"])
 
-    total_goal = sum(frame["meta"])
-    total_partial = sum(value for value in frame["meta_parcial"] if value is not None)
-    total_realized = sum(frame["realizado"])
+    total_published_goals = sum(frame["metas_publicadas"])
+    total_partial = sum(frame["meta_acumulada_ate_data"])
+    total_realized = sum(frame["realizado_acumulado"])
     total_attainment = (
         total_realized * 100 / total_partial if total_partial else None
     )
 
-    st.caption(
-        f"Referência: {reference:%d/%m/%Y} · {elapsed} de {total_days} dias úteis "
-        f"decorridos · {remaining} dias úteis restantes."
+    current_month_note = (
+        f"{MONTHS[current_month.month]} entra proporcionalmente aos {elapsed} de "
+        f"{total_days} dias úteis decorridos, com {remaining} restantes."
     )
+    if current_month == min(available_rows):
+        period_note = current_month_note
+    else:
+        period_note = f"Os meses anteriores entram completos; {current_month_note.lower()}"
+    st.caption(f"Referência: {reference:%d/%m/%Y}. {period_note}")
     metric_goal, metric_partial, metric_realized, metric_attainment = st.columns(4)
-    metric_goal.metric("Meta de setembro", format_currency_br(float(total_goal)))
-    metric_partial.metric("Meta parcial até hoje", format_currency_br(float(total_partial)))
-    metric_realized.metric("Realizado até hoje", format_currency_br(float(total_realized)))
+    metric_goal.metric(
+        f"Metas publicadas até {MONTHS[current_month.month].lower()}",
+        format_currency_br(float(total_published_goals)),
+    )
+    metric_partial.metric("Meta acumulada até hoje", format_currency_br(float(total_partial)))
+    metric_realized.metric("Realizado acumulado", format_currency_br(float(total_realized)))
     metric_attainment.metric(
-        "Atingimento da meta parcial",
+        "Atingimento acumulado",
         format_percentage_br(float(total_attainment)) if total_attainment is not None else "Pendente",
     )
 
     st.subheader("Venda x meta por região")
     st.caption(
         "O percentual exato, antes da formatação visual, define o XP. O resultado e o XP "
-        "permanecem únicos por região; a coluna Vendedores mostra quem compôs suas vendas."
+        "permanecem únicos por região e acumulam os meses decorridos; a coluna Vendedores "
+        "mostra quem compôs suas vendas."
     )
     display = frame.copy()
     display["Dias úteis"] = display.apply(
@@ -563,18 +580,20 @@ def render_quadrimester_sales(repository: SalesRepository):
     display = display.rename(columns={
         "regiao": "Região",
         "vendedores": "Vendedores",
-        "realizado": "Realizado",
-        "meta_parcial": "Meta parcial",
-        "atingimento_parcial_pct": "Atingimento parcial",
+        "realizado_acumulado": "Realizado acumulado",
+        "meta_acumulada_ate_data": "Meta acumulada até hoje",
+        "atingimento_acumulado_pct": "Atingimento acumulado",
         "xp": "XP da região",
-        "meta": "Meta mensal",
-        "meta_diaria": "Meta diária",
-        "saldo_meta": "Saldo da meta",
+        "metas_publicadas": "Metas publicadas",
+        "meta_mes_atual": "Meta do mês atual",
+        "meta_diaria_mes_atual": "Meta diária atual",
+        "saldo_metas_publicadas": "Saldo das metas publicadas",
         "necessario_dia_util_restante": "Necessário/dia restante",
     })
     numeric_columns = [
-        "Realizado", "Meta parcial", "Atingimento parcial", "Meta mensal",
-        "Meta diária", "Saldo da meta", "Necessário/dia restante",
+        "Realizado acumulado", "Meta acumulada até hoje", "Atingimento acumulado",
+        "Metas publicadas", "Meta do mês atual", "Meta diária atual",
+        "Saldo das metas publicadas", "Necessário/dia restante",
     ]
     for column in numeric_columns:
         display[column] = display[column].map(
@@ -582,20 +601,34 @@ def render_quadrimester_sales(repository: SalesRepository):
         )
     st.dataframe(
         display[[
-            "Região", "Vendedores", "Realizado", "Meta parcial", "Atingimento parcial",
-            "XP da região", "Meta mensal", "Meta diária", "Dias úteis", "Saldo da meta",
-            "Necessário/dia restante",
+            "Região", "Vendedores", "Realizado acumulado", "Meta acumulada até hoje",
+            "Atingimento acumulado", "XP da região", "Metas publicadas",
+            "Meta do mês atual", "Meta diária atual", "Dias úteis",
+            "Saldo das metas publicadas", "Necessário/dia restante",
         ]],
         column_config={
-            "Realizado": st.column_config.NumberColumn("Realizado", format="R$ %.2f"),
-            "Meta parcial": st.column_config.NumberColumn("Meta parcial", format="R$ %.2f"),
-            "Atingimento parcial": st.column_config.NumberColumn(
-                "Atingimento parcial", format="%.1f%%"
+            "Realizado acumulado": st.column_config.NumberColumn(
+                "Realizado acumulado", format="R$ %.2f"
+            ),
+            "Meta acumulada até hoje": st.column_config.NumberColumn(
+                "Meta acumulada até hoje", format="R$ %.2f"
+            ),
+            "Atingimento acumulado": st.column_config.NumberColumn(
+                "Atingimento acumulado", format="%.1f%%"
             ),
             "XP da região": st.column_config.NumberColumn("XP da região", format="%d XP"),
-            "Meta mensal": st.column_config.NumberColumn("Meta mensal", format="R$ %.2f"),
-            "Meta diária": st.column_config.NumberColumn("Meta diária", format="R$ %.2f"),
-            "Saldo da meta": st.column_config.NumberColumn("Saldo da meta", format="R$ %.2f"),
+            "Metas publicadas": st.column_config.NumberColumn(
+                "Metas publicadas", format="R$ %.2f"
+            ),
+            "Meta do mês atual": st.column_config.NumberColumn(
+                "Meta do mês atual", format="R$ %.2f"
+            ),
+            "Meta diária atual": st.column_config.NumberColumn(
+                "Meta diária atual", format="R$ %.2f"
+            ),
+            "Saldo das metas publicadas": st.column_config.NumberColumn(
+                "Saldo das metas publicadas", format="R$ %.2f"
+            ),
             "Necessário/dia restante": st.column_config.NumberColumn(
                 "Necessário/dia restante", format="R$ %.2f"
             ),

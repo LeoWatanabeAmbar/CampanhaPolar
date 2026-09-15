@@ -3,7 +3,7 @@
 Painel implementado no padrão visual do Gestão Comercial, com navegação lateral e seis páginas:
 
 - **Visão geral:** metas publicadas da campanha, regiões participantes, fases confirmadas, XP regional de adiantamento, cobertura por fase e detalhamento regional.
-- **Venda no Quadrimestre:** realizado elegível de setembro contra a meta regional proporcional aos dias úteis decorridos, com atingimento e XP atuais por região.
+- **Venda no Quadrimestre:** realizado elegível acumulado desde setembro contra as metas regionais disponíveis, usando a meta proporcional do mês atual para calcular o atingimento e o XP por região.
 - **Clientes novos:** resumo por região e detalhamento por vendedor, com duas linhas para triangulações e o XP atribuído a cada participante.
 - **Clientes reativados:** resumo por região e detalhamento por vendedor dos retornos após 6 meses em Canais ou 12 meses em Construção.
 - **Mix de produtos:** resumo regional e detalhamento por vendedor da primeira compra das famílias, mínimos, exclusões, pendências e XP.
@@ -29,7 +29,7 @@ O Supabase Authentication recebe e-mail e senha e devolve os tokens da sessão; 
 ## Preenchimento
 
 - A navegação não possui filtro de competência. As visões abrangem toda a campanha e identificam a competência nas tabelas; o adiantamento reúne setembro a dezembro na mesma tabela.
-- Em Venda no Quadrimestre, setembro usa 21 dias úteis. A referência inclui o dia atual quando ele for útil; em 15/09/2026, são 10 dias decorridos e 11 restantes. O percentual exato do realizado sobre a meta parcial define o XP, uma única vez por região.
+- Em Venda no Quadrimestre, os meses encerrados entram integralmente e o mês atual entra proporcionalmente aos dias úteis decorridos. Em 15/09/2026, setembro possui 10 de 21 dias úteis decorridos; em outubro, a comparação será `setembro integral + outubro parcial`, tanto nas metas quanto nas vendas. O percentual acumulado exato define o XP, uma única vez por região.
 - Marque cada fase após a conferência manual de suas condições. As fases são independentes; marcar 80% não marca automaticamente 32% ou 56%.
 - Clique em **Salvar alterações** para gravar todos os meses em uma única transação. Se houver conflito com outra sessão, nenhuma linha do envio é aplicada.
 - O histórico conserva os valores anteriores, os novos valores, a conta autenticada e a data/hora. É possível desmarcar um check como correção, preservando essa alteração no histórico.

@@ -9,9 +9,12 @@ from streamlit.testing.v1 import AppTest
 from polar.adiantamento import DataAccessError
 from polar.vendas import (
     LOAD_FUNCTION,
+    OCTOBER,
     SEPTEMBER,
     SalesRepository,
+    calculate_cumulative_region_results,
     calculate_region_results,
+    campaign_months_through,
     sales_xp,
     working_days,
 )
@@ -29,6 +32,27 @@ def sample_rows():
         },
         {
             "data_referencia": "2026-09-15",
+            "regiao": "REG 02",
+            "time": "CANAIS",
+            "meta": 105000,
+            "realizado": 40000,
+            "vendedores": "Vendedor C",
+        },
+    ]
+
+
+def october_rows():
+    return [
+        {
+            "data_referencia": "2026-10-15",
+            "regiao": "REG 01",
+            "time": "TIME SUL",
+            "meta": 210000,
+            "realizado": 90000,
+            "vendedores": "Vendedor A",
+        },
+        {
+            "data_referencia": "2026-10-15",
             "regiao": "REG 02",
             "time": "CANAIS",
             "meta": 105000,
@@ -59,6 +83,11 @@ class FakeClient:
 def test_september_working_days_include_reference_and_exclude_national_holiday():
     assert working_days(SEPTEMBER, date(2026, 9, 14)) == (21, 9, 12)
     assert working_days(SEPTEMBER, date(2026, 9, 15)) == (21, 10, 11)
+
+
+def test_campaign_months_accumulate_through_current_month():
+    assert campaign_months_through(date(2026, 9, 15)) == (SEPTEMBER,)
+    assert campaign_months_through(date(2026, 10, 15)) == (SEPTEMBER, OCTOBER)
 
 
 @pytest.mark.parametrize(
@@ -107,6 +136,27 @@ def test_example_at_110_percent_scores_550_xp():
     assert result["xp"] == 550
 
 
+def test_october_combines_full_september_with_partial_october():
+    september = [
+        {**sample_rows()[0], "data_referencia": "2026-09-30", "realizado": 220000},
+        {**sample_rows()[1], "data_referencia": "2026-09-30", "realizado": 105000},
+    ]
+    results = calculate_cumulative_region_results(
+        {SEPTEMBER: september, OCTOBER: october_rows()},
+        date(2026, 10, 15),
+    )
+
+    first = results[0]
+    assert first["regiao"] == "REG 01"
+    assert first["metas_publicadas"] == Decimal("420000")
+    assert first["meta_acumulada_ate_data"] == Decimal("310000")
+    assert first["realizado_acumulado"] == Decimal("310000")
+    assert first["atingimento_acumulado_pct"] == Decimal("100")
+    assert first["xp"] == 500
+    assert first["dias_uteis_decorridos"] == 10
+    assert first["dias_uteis_restantes"] == 11
+
+
 def test_repository_loads_september_regional_sales():
     client = FakeClient(sample_rows())
     rows = SalesRepository(client).load()
@@ -115,6 +165,17 @@ def test_repository_loads_september_regional_sales():
     assert rows[0]["regiao"] == "REG 01"
     assert rows[0]["meta"] == Decimal("210000")
     assert rows[0]["realizado"] == Decimal("100000")
+
+
+def test_repository_loads_all_elapsed_months_for_october():
+    client = FakeClient(sample_rows())
+    rows = SalesRepository(client).load_through(date(2026, 10, 15))
+
+    assert list(rows) == [SEPTEMBER, OCTOBER]
+    assert client.calls == [
+        (LOAD_FUNCTION, {"p_competencia": "2026-09-01"}),
+        (LOAD_FUNCTION, {"p_competencia": "2026-10-01"}),
+    ]
 
 
 def test_repository_explains_outdated_rpc_contract():
@@ -146,27 +207,54 @@ def page_runner():
     import streamlit as st
     from app import render_quadrimester_sales
 
-    render_quadrimester_sales(st.session_state["repo"])
+    render_quadrimester_sales(
+        st.session_state["repo"], st.session_state.get("reference")
+    )
 
 
 def test_page_shows_partial_goal_attainment_and_xp_by_region():
-    repository = SimpleNamespace(load=lambda month: sample_rows())
+    repository = SimpleNamespace(load_through=lambda reference: {SEPTEMBER: sample_rows()})
     app = AppTest.from_function(page_runner)
     app.session_state["repo"] = repository
+    app.session_state["reference"] = date(2026, 9, 15)
     app.run(timeout=15)
 
     assert not app.exception
     assert len(app.metric) == 4
-    assert app.metric[0].label == "Meta de setembro"
-    assert app.metric[1].label == "Meta parcial até hoje"
-    assert app.metric[2].label == "Realizado até hoje"
-    assert app.metric[3].label == "Atingimento da meta parcial"
+    assert app.metric[0].label == "Metas publicadas até setembro"
+    assert app.metric[1].label == "Meta acumulada até hoje"
+    assert app.metric[2].label == "Realizado acumulado"
+    assert app.metric[3].label == "Atingimento acumulado"
     assert len(app.dataframe) == 1
     table = app.dataframe[0].value
     assert list(table.columns) == [
-        "Região", "Vendedores", "Realizado", "Meta parcial", "Atingimento parcial",
-        "XP da região", "Meta mensal", "Meta diária", "Dias úteis", "Saldo da meta",
-        "Necessário/dia restante",
+        "Região", "Vendedores", "Realizado acumulado", "Meta acumulada até hoje",
+        "Atingimento acumulado", "XP da região", "Metas publicadas",
+        "Meta do mês atual", "Meta diária atual", "Dias úteis",
+        "Saldo das metas publicadas", "Necessário/dia restante",
     ]
     assert list(table["XP da região"]) == [500, 350]
     assert list(table["Dias úteis"]) == ["10 de 21", "10 de 21"]
+
+
+def test_page_in_october_labels_and_displays_the_accumulated_quadrimester():
+    september = [
+        {**sample_rows()[0], "data_referencia": "2026-09-30", "realizado": 220000},
+        {**sample_rows()[1], "data_referencia": "2026-09-30", "realizado": 105000},
+    ]
+    repository = SimpleNamespace(
+        load_through=lambda reference: {SEPTEMBER: september, OCTOBER: october_rows()}
+    )
+    app = AppTest.from_function(page_runner)
+    app.session_state["repo"] = repository
+    app.session_state["reference"] = date(2026, 10, 15)
+    app.run(timeout=15)
+
+    assert not app.exception
+    assert app.metric[0].label == "Metas publicadas até outubro"
+    assert app.metric[1].label == "Meta acumulada até hoje"
+    table = app.dataframe[0].value.set_index("Região")
+    assert table.loc["REG 01", "Metas publicadas"] == pytest.approx(420000)
+    assert table.loc["REG 01", "Meta acumulada até hoje"] == pytest.approx(310000)
+    assert table.loc["REG 01", "Realizado acumulado"] == pytest.approx(310000)
+    assert table.loc["REG 01", "XP da região"] == 500

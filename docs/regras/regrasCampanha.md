@@ -84,7 +84,7 @@ Uma compra anterior da mesma linha impede a novidade, mesmo se ocorreu abaixo do
 
 **Conforme PDF, para o fechamento:** XP pelo atingimento da meta acumulada de setembro a dezembro, sem limite de pontuação neste indicador.
 
-**Acompanhamento mensal confirmado pelo usuário em 14/09/2026:** a meta de outubro só será conhecida em outubro; durante setembro, usar a meta de setembro. Distribuir a meta do mês pelos dias úteis e comparar o realizado acumulado no mês com a meta parcial até a data de referência. O usuário confirmou que **esse atingimento parcial também determina os XP de vendas durante o mês**.
+**Acompanhamento durante o quadrimestre confirmado pelo usuário em 14 e 15/09/2026:** a meta de outubro só será conhecida em outubro; durante setembro, usar somente a parcela decorrida da meta de setembro. A partir de outubro, acumular a meta e o realizado integrais dos meses encerrados e adicionar o realizado e a meta proporcional do mês atual. Assim, em outubro, o denominador é `meta de setembro + meta parcial de outubro`, e o numerador é `vendas de setembro + vendas de outubro até a referência`. Esse atingimento acumulado determina os XP atuais de vendas.
 
 **Valor do realizado confirmado pelo usuário em 14/09/2026:** usar o valor bruto dos pedidos, com referência em `fct_pedido_item.valor_bruto_total`, para comparar as vendas com a meta. A competência é determinada pela emissão/implantação do pedido. A atribuição monetária em triangulações e os demais critérios de elegibilidade seguem em [Regras de negócio](regraNegocio.md) e [Dados de vendas](../dados/dadoVenda.md).
 
@@ -92,7 +92,7 @@ Uma compra anterior da mesma linha impede a novidade, mesmo se ocorreu abaixo do
 
 **Apuração regional confirmada pelo usuário em 14/09/2026:** considerar meta e vendas por região. Mesmo quando dois vendedores aparecerem na mesma região no mês, manter uma única meta regional integral e somar as vendas atribuídas à região. Calcular a meta parcial, o atingimento e a faixa de XP nesse grão. **O usuário confirmou que os XP de atingimento ficam na região**, sem distribuição aos vendedores e sem aplicação do rateio dos eventos de triangulação.
 
-**Calendário confirmado:** segunda a sexta, descontando feriados nacionais. Fórmulas: `meta_diaria = meta_mes / dias_uteis_mes`; `meta_parcial = meta_diaria * dias_uteis_decorridos`; `atingimento_parcial_pct = 100 * realizado_mes_ate_data / meta_parcial`. Aplicar as faixas abaixo a esse percentual exato. A proposta inclui a data de referência nos dias decorridos quando for útil; ela não aparece também nos dias restantes. As condições de cálculo e o exemplo estão em [Dados de metas](../dados/dadoMeta.md) e [Calendário da campanha](../dados/calendarioCampanha.md).
+**Calendário confirmado:** segunda a sexta, descontando feriados nacionais. Fórmulas do mês atual: `meta_diaria = meta_mes / dias_uteis_mes` e `meta_parcial = meta_diaria * dias_uteis_decorridos`. No acumulado: `meta_acumulada_ate_data = soma_metas_meses_encerrados + meta_parcial_mes_atual` e `atingimento_acumulado_pct = 100 * realizado_acumulado / meta_acumulada_ate_data`. Aplicar as faixas abaixo a esse percentual exato. A data de referência entra nos dias decorridos quando for útil e não aparece também nos dias restantes. As condições de cálculo estão em [Dados de metas](../dados/dadoMeta.md) e [Calendário da campanha](../dados/calendarioCampanha.md).
 
 **Correção confirmada pelo usuário em 14/09/2026:** a faixa de 550 XP começa em **110%**. O PDF apresenta `100%–119,99%`, sobrepondo a faixa de 500 XP. Com o uso do percentual exato também confirmado pelo usuário, essa faixa abrange de 110% até menos de 120%, incluindo valores como 119,999%.
 
@@ -115,7 +115,7 @@ Fórmula para atingimento `p >= 130`: `xp_vendas = 650 + 50 * floor((p - 130) / 
 
 **Precisão confirmada pelo usuário em 14/09/2026:** usar o percentual exato para definir os XP de vendas, sem arredondar ou truncar antes de comparar com os limites. Cada faixa inclui seu limite inicial e exclui o início da seguinte. Exemplo confirmado: 109,999% mantém 500 XP; somente ao atingir 110% passam a ser 550 XP. Da mesma forma, 139,999% mantém 650 XP e 140% passa a 700 XP. Na implementação, preservar a precisão decimal dos valores usados no cálculo; eventual formatação para exibição não deve alterar o enquadramento nem alimentar o cálculo de XP.
 
-- Durante a campanha: referência mensal proporcional aos dias úteis decorridos, conforme confirmado pelo usuário. Não exigir nem estimar metas futuras para acompanhar o mês atual.
+- Durante a campanha: acumular as competências decorridas e proporcionalizar somente a meta do mês atual pelos dias úteis. Não exigir nem estimar metas futuras; se a meta do novo mês ainda não estiver cadastrada, informar a indisponibilidade e manter o acumulado encerrado no último mês publicado.
 - Recalcular os XP de vendas na data de referência; o resultado pode aumentar ou diminuir conforme o realizado, o avanço da meta parcial e mudanças posteriores de elegibilidade. Não somar fotografias diárias nem os XP dos meses para apurar o XP final do quadrimestre. O fechamento segue o atingimento acumulado previsto no PDF quando as metas dos quatro meses estiverem disponíveis, mas permanece sujeito ao recálculo pela situação atual das fontes.
 
 ## Unidades de apuração e limites de XP
@@ -134,7 +134,7 @@ Fórmula para atingimento `p >= 130`: `xp_vendas = 650 + 50 * floor((p - 130) / 
 | Clientes reativados | 8 XP por cliente elegível | 80 XP por vendedor | Limite informado no PDF |
 | Expansão de mix | 10 XP por primeira compra elegível de linha pelo grupo comercial | Sem limite, por vendedor | Unidade de pontuação e ausência de teto confirmadas pelo usuário |
 | Antecipação de pedidos | 10 XP por fase confirmada da região; até 30 XP no mês | 120 XP por região na campanha | XP vinculado à região, confirmado pelo usuário; conferência manual |
-| Vendas | XP da região pela faixa do atingimento parcial mensal; no fechamento, atingimento regional acumulado do quadrimestre | Sem limite, por região | XP vinculado à região, confirmado pelo usuário |
+| Vendas | XP da região pela faixa do atingimento acumulado: meses encerrados integrais mais a parcela decorrida do mês atual | Sem limite, por região | XP vinculado à região, confirmado pelo usuário |
 
 **Confirmado pelo usuário:** expansão de mix e venda no quadrimestre continuam sem teto, conforme o PDF. Registrar explicitamente essas regras como `sem_limite`; ausência de configuração não significa ausência de limite.
 

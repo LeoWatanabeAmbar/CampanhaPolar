@@ -37,7 +37,7 @@ As metas regionais utilizadas no indicador de vendas ficam aqui. O Budget Anual 
 - Admitidos e desligados, **confirmados pelo usuário em 14/09/2026**: a meta permanece integral na região e não é proporcionalizada pela quantidade de vendedores ou pelos meses de atuação de cada um. Somar normalmente as vendas atribuídas à região. Nos indicadores individuais, cada vendedor acumula somente os eventos elegíveis que tiver, com os mesmos tetos da campanha.
 - Período: extrair ano e mês de `data`.
 - Valor: `meta`.
-- Acompanhamento durante o mês: usar o realizado do mês e a meta parcial desse mesmo mês, proporcional aos dias úteis decorridos, conforme confirmado pelo usuário. Ao mudar de competência, usar sua própria meta assim que estiver disponível.
+- Acompanhamento durante o quadrimestre: somar meta e realizado integrais dos meses encerrados com a meta parcial e o realizado do mês atual. Ao mudar de competência, usar sua própria meta assim que estiver disponível; não repetir a meta anterior como estimativa.
 - Fechamento do quadrimestre conforme o PDF: somar as competências de setembro a dezembro do ano confirmado, por região, depois de conferir presença dos quatro meses. A falta de metas futuras não impede o acompanhamento mensal; a falta de uma meta necessária ao fechamento deve ser sinalizada. Meta ausente não deve ser assumida como zero.
 - Revisão: o Gestão Comercial atualiza a linha pela chave `(data, regiao)` e modifica `atualizado_em`. Esse timestamp não constitui histórico de versões.
 - Regiões sem vendas: manter as regiões participantes com meta positiva cadastrada mesmo quando não houver vendas válidas no período, apresentando realizado zero se a carga estiver válida. A lista de participantes é derivada dessas metas, não de um cadastro separado.
@@ -62,7 +62,7 @@ Na proposta, manter uma fotografia de acompanhamento por `campanha_id` + `regiao
 
 **Confirmado pelo usuário em 14/09/2026:** acompanhar os dias úteis até o fim do mês, a meta de venda por dia útil e o percentual do realizado em relação à meta parcial até hoje. Esse percentual também deve definir os XP de vendas durante o mês. Contar segunda a sexta, descontando feriados nacionais, conforme [Calendário da campanha](calendarioCampanha.md).
 
-**Implementado em 15/09/2026:** a página Venda no Quadrimestre carrega as regiões com meta positiva de setembro, consolida o realizado elegível até a data local de São Paulo e aplica as fórmulas abaixo. A consulta autenticada está em `sql/vendas_quadrimestre.sql`; os cálculos de calendário e faixas de XP estão em `polar/vendas.py`.
+**Implementado em 15/09/2026:** a página Venda no Quadrimestre carrega as regiões com meta positiva nas competências decorridas desde setembro. Os meses encerrados entram integralmente; no mês atual, consolida o realizado elegível até a data local de São Paulo e proporcionaliza a meta pelos dias úteis. A consulta autenticada está em `sql/vendas_quadrimestre.sql`; os cálculos acumulados, de calendário e das faixas de XP estão em `polar/vendas.py`.
 
 Usar a mesma região, competência e data de referência no realizado e na meta. O realizado é o acumulado regional do início do mês até a data de referência, reunindo as vendas atribuídas à região nesse período, mesmo que dois vendedores apareçam nela. Não usar apenas a venda do dia nem dividir a meta pelo número de vendedores.
 
@@ -88,14 +88,17 @@ Exemplo de triangulação: pedido de R$ 10.000 com vendedor A da região A e ven
 | `dias_uteis_restantes` | Dias úteis após a referência até o fim do mês |
 | `meta_diaria_planejada` | `meta_mes / dias_uteis_mes` |
 | `meta_parcial_ate_data` | `meta_mes * dias_uteis_decorridos / dias_uteis_mes` |
-| `atingimento_parcial_pct` | `100 * realizado_mes_ate_data / meta_parcial_ate_data` |
-| `xp_vendas_mensal_atual` | XP da região, calculado pela faixa do percentual parcial exato; permanece registrado na região, conforme confirmado pelo usuário |
-| `saldo_meta_mes` | `max(meta_mes - realizado_mes_ate_data, 0)` |
-| `venda_necessaria_por_dia_restante` | Proposta complementar: `saldo_meta_mes / dias_uteis_restantes`, para mostrar o ritmo necessário a partir dos próximos dias úteis |
+| `metas_publicadas` | Soma das metas integrais de setembro até o mês atual |
+| `meta_acumulada_ate_data` | Soma das metas integrais dos meses encerrados com `meta_parcial_ate_data` do mês atual |
+| `realizado_acumulado` | Soma do realizado elegível de setembro até a data de referência |
+| `atingimento_acumulado_pct` | `100 * realizado_acumulado / meta_acumulada_ate_data` |
+| `xp_vendas_atual` | XP da região calculado uma vez pela faixa do percentual acumulado exato |
+| `saldo_metas_publicadas` | `max(metas_publicadas - realizado_acumulado, 0)` |
+| `venda_necessaria_por_dia_restante` | `saldo_metas_publicadas / dias_uteis_restantes`, para mostrar o ritmo necessário até o fim do mês atual |
 
-A meta diária planejada distribui a meta entre todos os dias úteis do mês. O valor necessário por dia restante distribui apenas o saldo ainda não vendido entre os dias futuros; não dividir novamente a meta inteira pelos dias restantes. A meta parcial cresce conforme o calendário, mantendo o percentual exato, sem arredondar os valores intermediários para enquadrar XP. Valores arredondados servem somente à exibição.
+A meta diária planejada distribui a meta atual entre todos os dias úteis do mês. O valor necessário por dia restante distribui o saldo acumulado das metas publicadas entre os dias futuros do mês atual. A meta acumulada cresce conforme o calendário, mantendo o percentual exato, sem arredondar os valores intermediários para enquadrar XP. Valores arredondados servem somente à exibição.
 
-O XP mensal atual é uma fotografia recalculada a cada referência. Pode aumentar ou diminuir conforme o realizado, o avanço da meta parcial e mudanças na situação dos pedidos. Ao entrar outubro, começar a comparação de outubro com sua meta; não usar a meta de setembro no lugar dela. Se a meta do novo mês ainda não estiver cadastrada, sinalizar `Meta do mês não disponível`. Não somar fotografias diárias ou os XP mensais para calcular o XP final do quadrimestre: o fechamento usa o atingimento acumulado previsto no regulamento. **Confirmado pelo usuário em 14/09/2026:** esse resultado acumulado também continua sendo recalculado depois de fechamentos anteriores quando cancelamentos, devoluções, quitações, estornos ou outras correções mudarem as fontes. Os tetos de novos e reativados permanecem acumulados na campanha por vendedor; o de antecipação permanece acumulado por região, conforme [Dados de adiantamento](dadoAdiantamento.md).
+O XP atual é uma fotografia acumulada recalculada a cada referência. Pode aumentar ou diminuir conforme o realizado, o avanço da meta parcial e mudanças na situação dos pedidos. Em outubro, usar a meta própria de outubro na parcela do mês e somá-la à meta integral de setembro; não reutilizar a meta de setembro como estimativa para outubro. Se a meta do novo mês ainda não estiver cadastrada, sinalizar `Meta do mês não disponível` e encerrar o acumulado no último mês publicado. Não somar fotografias diárias nem os XP mensais: calcular uma única faixa sobre o atingimento acumulado. Esse resultado também continua sendo recalculado depois de fechamentos anteriores quando cancelamentos, devoluções, quitações, estornos ou outras correções mudarem as fontes. Os tetos de novos e reativados permanecem acumulados na campanha por vendedor; o de antecipação permanece acumulado por região, conforme [Dados de adiantamento](dadoAdiantamento.md).
 
 ### Condições de cálculo
 
@@ -115,7 +118,7 @@ Calendário real de setembro de 2026, referência em **14/09/2026**, incluindo e
 | Meta diária planejada: 210.000 / 21 | R$ 10.000,00 |
 | Meta parcial até 14/09: 10.000 × 9 | R$ 90.000,00 |
 | Realizado do mês até a referência | R$ 99.000,00 |
-| Atingimento parcial: 99.000 / 90.000 × 100 | 110% |
+| Atingimento acumulado: 99.000 / 90.000 × 100 | 110% |
 | XP de vendas calculado para a região na referência | 550 XP |
 | Saldo para a meta mensal: 210.000 − 99.000 | R$ 111.000,00 |
 | Venda necessária por dia restante: 111.000 / 12 | R$ 9.250,00 |

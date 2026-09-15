@@ -18,6 +18,10 @@ from polar.adiantamento import (
 
 LOAD_FUNCTION = "campanha_polar_carregar_vendas_regionais"
 SEPTEMBER = date(2026, 9, 1)
+OCTOBER = date(2026, 10, 1)
+NOVEMBER = date(2026, 11, 1)
+DECEMBER = date(2026, 12, 1)
+CAMPAIGN_MONTHS = (SEPTEMBER, OCTOBER, NOVEMBER, DECEMBER)
 NATIONAL_HOLIDAYS_2026 = frozenset({
     date(2026, 9, 7),
     date(2026, 10, 12),
@@ -53,6 +57,16 @@ def working_days(
     elapsed = sum(day <= reference for day in valid_days)
     remaining = sum(day > reference for day in valid_days)
     return len(valid_days), elapsed, remaining
+
+
+def campaign_months_through(reference: date) -> tuple[date, ...]:
+    """Lista as competências acumuladas da campanha disponíveis na referência."""
+    if reference < SEPTEMBER:
+        return (SEPTEMBER,)
+    if reference >= DECEMBER:
+        return CAMPAIGN_MONTHS
+    current_month = date(reference.year, reference.month, 1)
+    return tuple(month for month in CAMPAIGN_MONTHS if month <= current_month)
 
 
 def sales_xp(attainment_pct: Decimal | float | int | None) -> int | None:
@@ -130,6 +144,75 @@ def calculate_region_results(
     return results
 
 
+def calculate_cumulative_region_results(
+    rows_by_month: dict[date, list[dict]],
+    reference: date,
+) -> list[dict]:
+    """Acumula meses fechados e a parcela decorrida do mês atual por região."""
+    if not rows_by_month:
+        return []
+    months = sorted(rows_by_month)
+    current_month = months[-1]
+    total_days, elapsed_days, remaining_days = working_days(current_month, reference)
+    regions: dict[str, dict] = {}
+
+    for month in months:
+        for result in calculate_region_results(rows_by_month[month], month, reference):
+            region = str(result["regiao"])
+            record = regions.setdefault(region, {
+                "regiao": region,
+                "times": set(),
+                "vendedores_set": set(),
+                "metas_publicadas": Decimal("0"),
+                "meta_acumulada_ate_data": Decimal("0"),
+                "realizado_acumulado": Decimal("0"),
+                "meta_mes_atual": None,
+                "meta_diaria_mes_atual": None,
+            })
+            if time_name := str(result.get("time") or "").strip():
+                record["times"].add(time_name)
+            seller_names = str(result.get("vendedores") or "").strip()
+            if seller_names and seller_names != "Sem venda elegível":
+                record["vendedores_set"].update(
+                    name.strip() for name in seller_names.split(" · ") if name.strip()
+                )
+            record["metas_publicadas"] += result["meta"]
+            record["meta_acumulada_ate_data"] += result["meta_parcial"] or Decimal("0")
+            record["realizado_acumulado"] += result["realizado"]
+            if month == current_month:
+                record["meta_mes_atual"] = result["meta"]
+                record["meta_diaria_mes_atual"] = result["meta_diaria"]
+
+    results = []
+    for region in sorted(regions):
+        record = regions[region]
+        accumulated_goal = record["meta_acumulada_ate_data"]
+        realized = record["realizado_acumulado"]
+        attainment = (
+            realized * Decimal("100") / accumulated_goal if accumulated_goal > 0 else None
+        )
+        balance = max(record["metas_publicadas"] - realized, Decimal("0"))
+        required = balance / remaining_days if remaining_days else None
+        results.append({
+            "regiao": region,
+            "time": " · ".join(sorted(record["times"])) or "",
+            "vendedores": " · ".join(sorted(record["vendedores_set"])) or "Sem venda elegível",
+            "metas_publicadas": record["metas_publicadas"],
+            "meta_acumulada_ate_data": accumulated_goal,
+            "realizado_acumulado": realized,
+            "atingimento_acumulado_pct": attainment,
+            "xp": sales_xp(attainment),
+            "meta_mes_atual": record["meta_mes_atual"],
+            "meta_diaria_mes_atual": record["meta_diaria_mes_atual"],
+            "dias_uteis_mes": total_days,
+            "dias_uteis_decorridos": elapsed_days,
+            "dias_uteis_restantes": remaining_days,
+            "saldo_metas_publicadas": balance,
+            "necessario_dia_util_restante": required,
+        })
+    return results
+
+
 class SalesRepository:
     """Carrega meta e realizado regionais pela Data API autenticada."""
 
@@ -185,3 +268,7 @@ class SalesRepository:
                 "vendedores": str(item.get("vendedores") or "Sem venda elegível").strip(),
             })
         return records
+
+    def load_through(self, reference: date) -> dict[date, list[dict]]:
+        """Carrega setembro e todas as competências decorridas até a referência."""
+        return {month: self.load(month) for month in campaign_months_through(reference)}
