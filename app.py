@@ -22,6 +22,7 @@ from polar.adiantamento import (
 from polar.clientes_novos import NewCustomersRepository
 from polar.clientes_reativados import ReactivatedCustomersRepository
 from polar.mix_produtos import ProductMixRepository
+from polar.vendas import SEPTEMBER, SalesRepository, calculate_region_results
 
 MONTHS = {9: "Setembro", 10: "Outubro", 11: "Novembro", 12: "Dezembro"}
 MONTH_ABBREVIATIONS = {9: "Set", 10: "Out", 11: "Nov", 12: "Dez"}
@@ -168,6 +169,11 @@ def format_currency_br(value: float) -> str:
     """Formata um total monetário sem depender do locale do servidor."""
     formatted = f"{value:,.0f}".replace(",", "_").replace(".", ",").replace("_", ".")
     return f"R$ {formatted}"
+
+
+def format_percentage_br(value: float) -> str:
+    """Formata percentuais da interface sem alterar a precisão usada no XP."""
+    return f"{value:,.1f}%".replace(",", "_").replace(".", ",").replace("_", ".")
 
 
 def build_overview_frame(rows: list[dict], goals: list[dict]) -> pd.DataFrame:
@@ -425,6 +431,7 @@ def render_sidebar(identity: Identity, authenticator: SupabaseAuthenticator):
             "Página",
             (
                 "Visão geral",
+                "Venda no Quadrimestre",
                 "Clientes novos",
                 "Clientes reativados",
                 "Mix de produtos",
@@ -499,6 +506,99 @@ def render_overview(repository: Repository):
                 "Progresso", min_value=0.0, max_value=1.0, format="percent",
             ),
             "XP": st.column_config.NumberColumn("XP", format="%d XP"),
+        },
+        hide_index=True,
+        width="stretch",
+    )
+
+
+def render_quadrimester_sales(repository: SalesRepository):
+    """Exibe o ritmo de setembro e o XP atual calculado por região."""
+    render_page_header(
+        "Venda no Quadrimestre",
+        "Compare as vendas de setembro com a meta proporcional aos dias úteis decorridos.",
+        SEPTEMBER,
+    )
+    rows = repository.load(SEPTEMBER)
+    if not rows:
+        st.info("A meta de setembro ainda não está disponível para as regiões participantes.")
+        return
+
+    results = calculate_region_results(rows, SEPTEMBER)
+    frame = pd.DataFrame(results)
+    reference = date.fromisoformat(str(frame.iloc[0]["data_referencia"]))
+    elapsed = int(frame.iloc[0]["dias_uteis_decorridos"])
+    total_days = int(frame.iloc[0]["dias_uteis_mes"])
+    remaining = int(frame.iloc[0]["dias_uteis_restantes"])
+
+    total_goal = sum(frame["meta"])
+    total_partial = sum(value for value in frame["meta_parcial"] if value is not None)
+    total_realized = sum(frame["realizado"])
+    total_attainment = (
+        total_realized * 100 / total_partial if total_partial else None
+    )
+
+    st.caption(
+        f"Referência: {reference:%d/%m/%Y} · {elapsed} de {total_days} dias úteis "
+        f"decorridos · {remaining} dias úteis restantes."
+    )
+    metric_goal, metric_partial, metric_realized, metric_attainment = st.columns(4)
+    metric_goal.metric("Meta de setembro", format_currency_br(float(total_goal)))
+    metric_partial.metric("Meta parcial até hoje", format_currency_br(float(total_partial)))
+    metric_realized.metric("Realizado até hoje", format_currency_br(float(total_realized)))
+    metric_attainment.metric(
+        "Atingimento da meta parcial",
+        format_percentage_br(float(total_attainment)) if total_attainment is not None else "Pendente",
+    )
+
+    st.subheader("Venda x meta por região")
+    st.caption(
+        "O percentual exato, antes da formatação visual, define o XP. O resultado e o XP "
+        "permanecem únicos por região; a coluna Vendedores mostra quem compôs suas vendas."
+    )
+    display = frame.copy()
+    display["Dias úteis"] = display.apply(
+        lambda row: f"{row['dias_uteis_decorridos']} de {row['dias_uteis_mes']}", axis=1
+    )
+    display = display.rename(columns={
+        "regiao": "Região",
+        "vendedores": "Vendedores",
+        "realizado": "Realizado",
+        "meta_parcial": "Meta parcial",
+        "atingimento_parcial_pct": "Atingimento parcial",
+        "xp": "XP da região",
+        "meta": "Meta mensal",
+        "meta_diaria": "Meta diária",
+        "saldo_meta": "Saldo da meta",
+        "necessario_dia_util_restante": "Necessário/dia restante",
+    })
+    numeric_columns = [
+        "Realizado", "Meta parcial", "Atingimento parcial", "Meta mensal",
+        "Meta diária", "Saldo da meta", "Necessário/dia restante",
+    ]
+    for column in numeric_columns:
+        display[column] = display[column].map(
+            lambda value: float(value) if value is not None else None
+        )
+    st.dataframe(
+        display[[
+            "Região", "Vendedores", "Realizado", "Meta parcial", "Atingimento parcial",
+            "XP da região", "Meta mensal", "Meta diária", "Dias úteis", "Saldo da meta",
+            "Necessário/dia restante",
+        ]],
+        column_config={
+            "Realizado": st.column_config.NumberColumn("Realizado", format="R$ %.2f"),
+            "Meta parcial": st.column_config.NumberColumn("Meta parcial", format="R$ %.2f"),
+            "Atingimento parcial": st.column_config.NumberColumn(
+                "Atingimento parcial", format="%.1f%%"
+            ),
+            "XP da região": st.column_config.NumberColumn("XP da região", format="%d XP"),
+            "Meta mensal": st.column_config.NumberColumn("Meta mensal", format="R$ %.2f"),
+            "Meta diária": st.column_config.NumberColumn("Meta diária", format="R$ %.2f"),
+            "Saldo da meta": st.column_config.NumberColumn("Saldo da meta", format="R$ %.2f"),
+            "Necessário/dia restante": st.column_config.NumberColumn(
+                "Necessário/dia restante", format="R$ %.2f"
+            ),
         },
         hide_index=True,
         width="stretch",
@@ -910,6 +1010,8 @@ def main():
         repository = Repository(data_client)
         if page == "Visão geral":
             render_overview(repository)
+        elif page == "Venda no Quadrimestre":
+            render_quadrimester_sales(SalesRepository(data_client))
         elif page == "Clientes novos":
             render_new_customers(NewCustomersRepository(data_client))
         elif page == "Clientes reativados":

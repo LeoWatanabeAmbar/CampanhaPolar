@@ -62,6 +62,8 @@ Na proposta, manter uma fotografia de acompanhamento por `campanha_id` + `regiao
 
 **Confirmado pelo usuário em 14/09/2026:** acompanhar os dias úteis até o fim do mês, a meta de venda por dia útil e o percentual do realizado em relação à meta parcial até hoje. Esse percentual também deve definir os XP de vendas durante o mês. Contar segunda a sexta, descontando feriados nacionais, conforme [Calendário da campanha](calendarioCampanha.md).
 
+**Implementado em 15/09/2026:** a página Venda no Quadrimestre carrega as regiões com meta positiva de setembro, consolida o realizado elegível até a data local de São Paulo e aplica as fórmulas abaixo. A consulta autenticada está em `sql/vendas_quadrimestre.sql`; os cálculos de calendário e faixas de XP estão em `polar/vendas.py`.
+
 Usar a mesma região, competência e data de referência no realizado e na meta. O realizado é o acumulado regional do início do mês até a data de referência, reunindo as vendas atribuídas à região nesse período, mesmo que dois vendedores apareçam nela. Não usar apenas a venda do dia nem dividir a meta pelo número de vendedores.
 
 **Valor e rateio confirmados pelo usuário em 14/09/2026:** o realizado comparado à meta é o valor bruto dos pedidos, seguindo as alocações do dataflow e do Gestão Comercial. Agregar `fct_pedido_item.valor_bruto_total` dos itens elegíveis pela região do respectivo vendedor e pelo mês de `data_emissao`, até a referência. Nas triangulações, cada parcela monetária já vem dividida na fonte; não aplicar uma nova divisão. A regra de atribuição regional está definida.

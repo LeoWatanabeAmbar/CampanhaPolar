@@ -43,19 +43,19 @@ O aplicativo usa a API do Supabase Authentication para validar `auth.users`; nã
 
 ## 5. Preparar o banco
 
-Antes do primeiro uso, execute [adiantamento_meta.sql](../../sql/adiantamento_meta.sql), [clientes_novos.sql](../../sql/clientes_novos.sql), [clientes_reativados.sql](../../sql/clientes_reativados.sql) e [mix_produtos.sql](../../sql/mix_produtos.sql) no SQL Editor do Supabase. Em um projeto que já recebeu a versão anterior do adiantamento, execute também [20260915_usar_data_api.sql](../../sql/migrations/20260915_usar_data_api.sql). Os scripts:
+Antes do primeiro uso, execute [adiantamento_meta.sql](../../sql/adiantamento_meta.sql), [vendas_quadrimestre.sql](../../sql/vendas_quadrimestre.sql), [clientes_novos.sql](../../sql/clientes_novos.sql), [clientes_reativados.sql](../../sql/clientes_reativados.sql) e [mix_produtos.sql](../../sql/mix_produtos.sql) no SQL Editor do Supabase. Em um projeto que já recebeu a versão anterior do adiantamento, execute também [20260915_usar_data_api.sql](../../sql/migrations/20260915_usar_data_api.sql). Os scripts:
 
 - mantém as tabelas de adiantamento e histórico sem acesso direto pela API;
 - cria uma função de leitura para usuários autenticados;
 - cria uma função de gravação que confere no JWT se a conta é Laís ou Leonardo;
-- cria funções de consulta para clientes novos, clientes reativados e expansão de mix;
+- cria funções de consulta para Venda no Quadrimestre, clientes novos, clientes reativados e expansão de mix;
 - valida competência, região, tipos, versões e histórico dentro do banco.
 
 As funções ficam no schema `public`, já atendido pela Data API padrão, e acessam internamente as tabelas de `comercial_marts`. Não é preciso expor o schema `comercial_marts` nas configurações da API.
 
 Quando uma atualização alterar as colunas retornadas por uma função, execute novamente o arquivo SQL correspondente. Os scripts notificam o PostgREST para recarregar o cache de schema após a transação. Se a Data API ainda recusar uma consulta, a mensagem do painel informa o código e a descrição enviados pelo Supabase para orientar o diagnóstico.
 
-As três consultas analíticas recebem um limite próprio de 60 segundos, o máximo configurável para chamadas da Client API. Em uma instalação que já possua as funções, [20260915_ampliar_timeout_data_api.sql](../../sql/migrations/20260915_ampliar_timeout_data_api.sql) aplica somente esse ajuste sem alterar o limite das outras operações do projeto.
+As quatro consultas analíticas recebem um limite próprio de 60 segundos, o máximo configurável para chamadas da Client API. Em uma instalação que já possua as três funções de clientes, [20260915_ampliar_timeout_data_api.sql](../../sql/migrations/20260915_ampliar_timeout_data_api.sql) aplica esse ajuste nelas; `vendas_quadrimestre.sql` já cria a nova função com o mesmo limite.
 
 ## 6. Publicar e validar
 
@@ -64,10 +64,11 @@ Clique em **Deploy** e acompanhe os logs. Depois verifique:
 1. abertura da tela de login;
 2. entrada com e-mail e senha de uma conta cadastrada em `auth.users`;
 3. carregamento das regiões e metas de setembro;
-4. carregamento dos clientes novos e seus primeiros eventos;
-5. carregamento das reativações e conferência da última compra;
-6. carregamento do mix, mínimos e situações sem XP ou pendentes;
-7. consulta com um usuário comum;
+4. carregamento do realizado, meta parcial, atingimento e XP regional de setembro;
+5. carregamento dos clientes novos e seus primeiros eventos;
+6. carregamento das reativações e conferência da última compra;
+7. carregamento do mix, mínimos e situações sem XP ou pendentes;
+8. consulta com um usuário comum;
 8. salvamento com Laís ou Leonardo;
 9. persistência após recarregar a página.
 

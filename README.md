@@ -1,8 +1,9 @@
 # Campanha Polar
 
-Painel implementado no padrão visual do Gestão Comercial, com navegação lateral e cinco páginas:
+Painel implementado no padrão visual do Gestão Comercial, com navegação lateral e seis páginas:
 
 - **Visão geral:** metas publicadas da campanha, regiões participantes, fases confirmadas, XP regional de adiantamento, cobertura por fase e detalhamento regional.
+- **Venda no Quadrimestre:** realizado elegível de setembro contra a meta regional proporcional aos dias úteis decorridos, com atingimento e XP atuais por região.
 - **Clientes novos:** resumo por região e detalhamento por vendedor, com duas linhas para triangulações e o XP atribuído a cada participante.
 - **Clientes reativados:** resumo por região e detalhamento por vendedor dos retornos após 6 meses em Canais ou 12 meses em Construção.
 - **Mix de produtos:** resumo regional e detalhamento por vendedor da primeira compra das famílias, mínimos, exclusões, pendências e XP.
@@ -15,7 +16,7 @@ O login usa e-mail e senha do Supabase Authentication. Qualquer conta válida ca
 ## Configuração e execução
 
 1. Instale as dependências: `python -m pip install -r requirements.txt`.
-2. Execute [sql/adiantamento_meta.sql](sql/adiantamento_meta.sql), [sql/clientes_novos.sql](sql/clientes_novos.sql), [sql/clientes_reativados.sql](sql/clientes_reativados.sql) e [sql/mix_produtos.sql](sql/mix_produtos.sql) no SQL Editor do Supabase. Eles habilitam o adiantamento e as três consultas autenticadas de clientes. Em uma instalação que recebeu a versão anterior do adiantamento, execute [20260915_usar_data_api.sql](sql/migrations/20260915_usar_data_api.sql) antes dos SQLs de clientes.
+2. Execute [sql/adiantamento_meta.sql](sql/adiantamento_meta.sql), [sql/vendas_quadrimestre.sql](sql/vendas_quadrimestre.sql), [sql/clientes_novos.sql](sql/clientes_novos.sql), [sql/clientes_reativados.sql](sql/clientes_reativados.sql) e [sql/mix_produtos.sql](sql/mix_produtos.sql) no SQL Editor do Supabase. Eles habilitam o adiantamento e as consultas autenticadas do painel. Em uma instalação que recebeu a versão anterior do adiantamento, execute [20260915_usar_data_api.sql](sql/migrations/20260915_usar_data_api.sql) antes dos SQLs de clientes.
 3. Copie [.streamlit/secrets.example.toml](.streamlit/secrets.example.toml) para `.streamlit/secrets.toml` e configure somente `SUPABASE_URL` e `SUPABASE_PUBLISHABLE_KEY`. Nunca use `service_role` ou `sb_secret_...`.
 4. Inicie: `python -m streamlit run app.py`.
 
@@ -28,6 +29,7 @@ O Supabase Authentication recebe e-mail e senha e devolve os tokens da sessão; 
 ## Preenchimento
 
 - A navegação não possui filtro de competência. As visões abrangem toda a campanha e identificam a competência nas tabelas; o adiantamento reúne setembro a dezembro na mesma tabela.
+- Em Venda no Quadrimestre, setembro usa 21 dias úteis. A referência inclui o dia atual quando ele for útil; em 15/09/2026, são 10 dias decorridos e 11 restantes. O percentual exato do realizado sobre a meta parcial define o XP, uma única vez por região.
 - Marque cada fase após a conferência manual de suas condições. As fases são independentes; marcar 80% não marca automaticamente 32% ou 56%.
 - Clique em **Salvar alterações** para gravar todos os meses em uma única transação. Se houver conflito com outra sessão, nenhuma linha do envio é aplicada.
 - O histórico conserva os valores anteriores, os novos valores, a conta autenticada e a data/hora. É possível desmarcar um check como correção, preservando essa alteração no histórico.
