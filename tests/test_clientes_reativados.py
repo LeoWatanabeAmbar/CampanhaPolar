@@ -142,6 +142,14 @@ def test_page_renders_reactivated_summary_region_filter_and_details():
         "Lista dos clientes reativados",
         "Total XP",
     ]
+    regional_rows = app.dataframe[0].value[
+        app.dataframe[0].value["Região"] == "NORTE 01"
+    ]
+    assert list(regional_rows["Lista dos clientes reativados"]) == [
+        "GRUPO PENDENTE", "URBEN PARTICIPAÇÕES",
+    ]
+    assert regional_rows["Quantidade de clientes reativados"].notna().sum() == 1
+    assert regional_rows["Total XP"].notna().sum() == 1
     detail = app.dataframe[1].value
     assert list(detail.columns) == [
         "Data", "Última compra", "Prazo", "Grupo comercial", "Pedido de venda",

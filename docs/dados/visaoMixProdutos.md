@@ -4,7 +4,7 @@
 
 ## Conteúdo da página
 
-- tabela inicial por região com quantidade, lista das expansões confirmadas com um evento por linha e XP total;
+- tabela inicial agrupada por região, com cada expansão confirmada em uma linha real; quantidade e XP total aparecem somente na primeira linha do grupo regional;
 - apenas filtro de região no detalhamento;
 - data da primeira compra, códigos dos produtos, pedidos reunidos no dia e família;
 - uma linha por vendedor e região, com segmento, valor, mínimo, resultado e XP.

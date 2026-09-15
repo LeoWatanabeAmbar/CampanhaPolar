@@ -4,7 +4,7 @@
 
 ## Conteúdo da página
 
-- tabela inicial por região com quantidade de clientes reativados, lista dos grupos com um cliente por linha e XP total;
+- tabela inicial agrupada por região, com cada cliente em uma linha real; quantidade e XP total aparecem somente na primeira linha do grupo regional;
 - apenas filtro de região no detalhamento;
 - data da última compra válida, data da reativação e prazo aplicado;
 - uma linha por vendedor e região, com pedidos, segmento, atribuição e XP.

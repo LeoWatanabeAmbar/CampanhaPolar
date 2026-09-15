@@ -183,6 +183,7 @@ def test_page_renders_mix_summary_region_filter_and_details():
     assert list(app.dataframe[0].value.columns) == [
         "Região", "Quantidade de expansões", "Lista das expansões", "Total XP",
     ]
+    assert all("\n" not in value for value in app.dataframe[0].value["Lista das expansões"])
     detail = app.dataframe[1].value
     assert list(detail.columns) == [
         "Data", "Grupo comercial", "Família", "Produtos", "Pedido de venda",

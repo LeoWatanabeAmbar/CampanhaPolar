@@ -142,6 +142,14 @@ def test_page_renders_only_region_filter_summary_and_detailed_table():
         "Lista dos clientes novos",
         "Total XP",
     ]
+    regional_rows = app.dataframe[0].value[
+        app.dataframe[0].value["Região"] == "NORTE 01"
+    ]
+    assert list(regional_rows["Lista dos clientes novos"]) == [
+        "GRUPO PENDENTE", "PLANO INCORPORAÇÕES",
+    ]
+    assert regional_rows["Quantidade de clientes novos"].notna().sum() == 1
+    assert regional_rows["Total XP"].notna().sum() == 1
     assert list(app.dataframe[1].value.columns) == [
         "Data",
         "Grupo comercial",

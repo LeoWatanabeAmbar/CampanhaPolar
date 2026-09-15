@@ -284,14 +284,24 @@ def build_product_mix_region_summary(frame: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(summary, columns=columns)
 
 
-def multiline_summary_row_height(summary: pd.DataFrame, list_column: str) -> int:
-    """Reserva espaço para até dez itens separados por linha nas listas regionais."""
+def expand_summary_list_rows(summary: pd.DataFrame, list_column: str) -> pd.DataFrame:
+    """Transforma cada item da lista regional em uma linha real da tabela."""
     if summary.empty or list_column not in summary:
-        return 40
-    line_count = summary[list_column].fillna("").astype(str).map(
-        lambda value: max(1, len(value.splitlines()))
-    ).max()
-    return 16 + 24 * min(int(line_count), 10)
+        return summary.copy()
+
+    region_column = str(summary.columns[0])
+    expanded = []
+    for record in summary.to_dict("records"):
+        items = str(record.get(list_column) or "").splitlines() or [""]
+        for position, item in enumerate(items):
+            row = record.copy()
+            row[list_column] = item
+            if position:
+                for column in summary.columns:
+                    if column not in (region_column, list_column):
+                        row[column] = None
+            expanded.append(row)
+    return pd.DataFrame(expanded, columns=summary.columns)
 
 
 def validate_customer_detail_contract(
@@ -483,8 +493,9 @@ def render_new_customers(repository: NewCustomersRepository):
         "duas regiões, o XP é dividido entre elas."
     )
     summary = build_new_customers_region_summary(frame)
+    display_summary = expand_summary_list_rows(summary, "Lista dos clientes novos")
     st.dataframe(
-        summary,
+        display_summary,
         column_config={
             "Quantidade de clientes novos": st.column_config.NumberColumn(
                 "Quantidade de clientes novos", format="%d"
@@ -496,7 +507,7 @@ def render_new_customers(repository: NewCustomersRepository):
         },
         hide_index=True,
         width="stretch",
-        row_height=multiline_summary_row_height(summary, "Lista dos clientes novos"),
+        row_height=40,
     )
 
     st.subheader("Detalhamento dos clientes")
@@ -565,8 +576,9 @@ def render_reactivated_customers(repository: ReactivatedCustomersRepository):
         "linhas de uma triangulação é somado na respectiva região."
     )
     summary = build_reactivated_customers_region_summary(frame)
+    display_summary = expand_summary_list_rows(summary, "Lista dos clientes reativados")
     st.dataframe(
-        summary,
+        display_summary,
         column_config={
             "Quantidade de clientes reativados": st.column_config.NumberColumn(
                 "Quantidade de clientes reativados", format="%d"
@@ -578,7 +590,7 @@ def render_reactivated_customers(repository: ReactivatedCustomersRepository):
         },
         hide_index=True,
         width="stretch",
-        row_height=multiline_summary_row_height(summary, "Lista dos clientes reativados"),
+        row_height=40,
     )
 
     st.subheader("Detalhamento dos clientes")
@@ -655,8 +667,9 @@ def render_product_mix(repository: ProductMixRepository):
         "e família é contada uma vez por região."
     )
     summary = build_product_mix_region_summary(frame)
+    display_summary = expand_summary_list_rows(summary, "Lista das expansões")
     st.dataframe(
-        summary,
+        display_summary,
         column_config={
             "Quantidade de expansões": st.column_config.NumberColumn(
                 "Quantidade de expansões", format="%d"
@@ -668,7 +681,7 @@ def render_product_mix(repository: ProductMixRepository):
         },
         hide_index=True,
         width="stretch",
-        row_height=multiline_summary_row_height(summary, "Lista das expansões"),
+        row_height=40,
     )
 
     st.subheader("Detalhamento das expansões")
