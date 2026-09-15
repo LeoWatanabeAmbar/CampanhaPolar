@@ -165,6 +165,9 @@ def test_reactivated_region_summary_counts_event_once_and_sums_xp():
     assert summary.loc["CANAIS 01", "Quantidade de clientes reativados"] == 1
     assert summary.loc["CANAIS 01", "Total XP"] == pytest.approx(8)
     assert summary.loc["NORTE 01", "Quantidade de clientes reativados"] == 2
+    assert summary.loc["NORTE 01", "Lista dos clientes reativados"].splitlines() == [
+        "GRUPO PENDENTE", "URBEN PARTICIPAÇÕES",
+    ]
     assert summary.loc["NORTE 01", "Total XP"] == pytest.approx(4)
     assert summary.loc["NORTE 02", "Quantidade de clientes reativados"] == 1
     assert summary.loc["NORTE 02", "Total XP"] == pytest.approx(4)

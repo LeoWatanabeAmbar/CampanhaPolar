@@ -216,7 +216,7 @@ def build_new_customers_region_summary(frame: pd.DataFrame) -> pd.DataFrame:
         summary.append({
             "Região": region,
             "Quantidade de clientes novos": len(clients),
-            "Lista dos clientes novos": " · ".join(
+            "Lista dos clientes novos": "\n".join(
                 sorted(clients.values(), key=str.casefold)
             ),
             "Total XP": float(rows["xp"].sum()),
@@ -248,7 +248,7 @@ def build_reactivated_customers_region_summary(frame: pd.DataFrame) -> pd.DataFr
         summary.append({
             "Região": region,
             "Quantidade de clientes reativados": len(clients),
-            "Lista dos clientes reativados": " · ".join(
+            "Lista dos clientes reativados": "\n".join(
                 sorted(clients.values(), key=str.casefold)
             ),
             "Total XP": float(rows["xp"].sum()),
@@ -276,12 +276,22 @@ def build_product_mix_region_summary(frame: pd.DataFrame) -> pd.DataFrame:
         summary.append({
             "Região": region,
             "Quantidade de expansões": len(expansions),
-            "Lista das expansões": " · ".join(
+            "Lista das expansões": "\n".join(
                 sorted(expansions.values(), key=str.casefold)
             ),
             "Total XP": float(rows["xp"].sum()),
         })
     return pd.DataFrame(summary, columns=columns)
+
+
+def multiline_summary_row_height(summary: pd.DataFrame, list_column: str) -> int:
+    """Reserva espaço para até dez itens separados por linha nas listas regionais."""
+    if summary.empty or list_column not in summary:
+        return 40
+    line_count = summary[list_column].fillna("").astype(str).map(
+        lambda value: max(1, len(value.splitlines()))
+    ).max()
+    return 16 + 24 * min(int(line_count), 10)
 
 
 def validate_customer_detail_contract(
@@ -472,16 +482,21 @@ def render_new_customers(repository: NewCustomersRepository):
         "Cada grupo comercial é contado uma vez em cada região participante. Em eventos com "
         "duas regiões, o XP é dividido entre elas."
     )
+    summary = build_new_customers_region_summary(frame)
     st.dataframe(
-        build_new_customers_region_summary(frame),
+        summary,
         column_config={
             "Quantidade de clientes novos": st.column_config.NumberColumn(
                 "Quantidade de clientes novos", format="%d"
+            ),
+            "Lista dos clientes novos": st.column_config.TextColumn(
+                "Lista dos clientes novos", width="large"
             ),
             "Total XP": st.column_config.NumberColumn("Total XP", format="%.0f XP"),
         },
         hide_index=True,
         width="stretch",
+        row_height=multiline_summary_row_height(summary, "Lista dos clientes novos"),
     )
 
     st.subheader("Detalhamento dos clientes")
@@ -549,16 +564,21 @@ def render_reactivated_customers(repository: ReactivatedCustomersRepository):
         "Cada grupo comercial é contado uma vez em cada região participante. O XP das duas "
         "linhas de uma triangulação é somado na respectiva região."
     )
+    summary = build_reactivated_customers_region_summary(frame)
     st.dataframe(
-        build_reactivated_customers_region_summary(frame),
+        summary,
         column_config={
             "Quantidade de clientes reativados": st.column_config.NumberColumn(
                 "Quantidade de clientes reativados", format="%d"
+            ),
+            "Lista dos clientes reativados": st.column_config.TextColumn(
+                "Lista dos clientes reativados", width="large"
             ),
             "Total XP": st.column_config.NumberColumn("Total XP", format="%.0f XP"),
         },
         hide_index=True,
         width="stretch",
+        row_height=multiline_summary_row_height(summary, "Lista dos clientes reativados"),
     )
 
     st.subheader("Detalhamento dos clientes")
@@ -634,16 +654,21 @@ def render_product_mix(repository: ProductMixRepository):
         "O resumo considera somente expansões confirmadas. Cada combinação de grupo comercial "
         "e família é contada uma vez por região."
     )
+    summary = build_product_mix_region_summary(frame)
     st.dataframe(
-        build_product_mix_region_summary(frame),
+        summary,
         column_config={
             "Quantidade de expansões": st.column_config.NumberColumn(
                 "Quantidade de expansões", format="%d"
+            ),
+            "Lista das expansões": st.column_config.TextColumn(
+                "Lista das expansões", width="large"
             ),
             "Total XP": st.column_config.NumberColumn("Total XP", format="%.0f XP"),
         },
         hide_index=True,
         width="stretch",
+        row_height=multiline_summary_row_height(summary, "Lista das expansões"),
     )
 
     st.subheader("Detalhamento das expansões")

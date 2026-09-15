@@ -227,3 +227,23 @@ def test_mix_region_summary_counts_expansion_once_and_ignores_zero_xp():
     assert summary.loc["NORTE 02", "Quantidade de expansões"] == 1
     assert summary.loc["NORTE 02", "Total XP"] == pytest.approx(5)
     assert "CANAIS 01" not in summary.index
+
+
+def test_mix_region_summary_lists_each_expansion_on_its_own_line():
+    import pandas as pd
+
+    from app import build_product_mix_region_summary
+
+    rows = sample_rows()
+    rows.append({
+        **rows[0],
+        "grupo_comercial_id": "F214",
+        "nome_grupo_comercial": "OUTRA CONSTRUTORA",
+        "grupo_mix": "Grelha + Porta Grelha",
+    })
+    summary = build_product_mix_region_summary(pd.DataFrame(rows)).set_index("Região")
+
+    assert summary.loc["SUL 01", "Lista das expansões"].splitlines() == [
+        "FIPAL CONSTRUTORA — Hydrofix",
+        "OUTRA CONSTRUTORA — Grelha + Porta Grelha",
+    ]

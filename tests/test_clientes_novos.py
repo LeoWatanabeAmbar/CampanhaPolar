@@ -171,6 +171,9 @@ def test_region_summary_counts_clients_and_allocates_event_xp():
     assert summary.loc["SUL 01", "Quantidade de clientes novos"] == 1
     assert summary.loc["SUL 01", "Total XP"] == pytest.approx(10)
     assert summary.loc["NORTE 01", "Quantidade de clientes novos"] == 2
+    assert summary.loc["NORTE 01", "Lista dos clientes novos"].splitlines() == [
+        "GRUPO PENDENTE", "PLANO INCORPORAÇÕES",
+    ]
     assert summary.loc["NORTE 01", "Total XP"] == pytest.approx(5)
     assert summary.loc["NORTE 02", "Quantidade de clientes novos"] == 1
     assert summary.loc["NORTE 02", "Total XP"] == pytest.approx(5)

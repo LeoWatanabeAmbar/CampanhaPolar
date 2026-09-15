@@ -4,7 +4,7 @@
 
 ## Conteúdo da página
 
-- tabela inicial por região com quantidade de clientes novos, lista dos grupos comerciais e XP total atribuído à região;
+- tabela inicial por região com quantidade de clientes novos, lista dos grupos comerciais com um cliente por linha e XP total atribuído à região;
 - filtro de região no detalhamento;
 - detalhe com data, grupo comercial, pedido de venda, vendedor, região, segmento, atribuição e XP;
 - uma linha por vendedor e região: uma triangulação com dois participantes aparece em duas linhas.
