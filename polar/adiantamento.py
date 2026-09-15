@@ -3,8 +3,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
-from typing import Mapping
-
 from sqlalchemy import (
     JSON, Boolean, Column, Date, DateTime, Integer, MetaData, Numeric, String,
     Table, Text, and_, func, insert, select, update,
@@ -57,34 +55,22 @@ class ConcurrentChange(ValueError):
 
 @dataclass(frozen=True)
 class Identity:
-    """Identidade recebida exclusivamente da sessão OIDC validada pelo Streamlit."""
+    """Identidade recebida de uma sessão validada pelo Supabase Auth."""
     email: str
     user_id: str
-    tenant_id: str
+    auth_source: str = "supabase"
 
     @classmethod
-    def from_claims(cls, logged_in: bool, claims: Mapping, trusted_tenant: str):
-        if not logged_in or not trusted_tenant:
-            raise PermissionDenied("Faça login para acessar os registros.")
-        tenant = str(claims.get("tid", "")).lower()
-        if tenant != trusted_tenant.lower():
-            raise PermissionDenied("A conta não pertence à organização configurada.")
-        email = str(claims.get("preferred_username") or claims.get("email") or "").strip().lower()
-        user_id = str(claims.get("oid") or claims.get("sub") or "").strip()
+    def from_authenticated_user(cls, user: dict[str, str]):
+        email = str(user.get("email") or "").strip().lower()
+        user_id = str(user.get("id") or "").strip()
         if not email or not user_id:
             raise PermissionDenied("Não foi possível identificar a conta conectada.")
-        if claims.get("exp") is not None:
-            try:
-                expired = float(claims["exp"]) <= datetime.now(timezone.utc).timestamp()
-            except (TypeError, ValueError):
-                expired = True
-            if expired:
-                raise PermissionDenied("Sua sessão expirou. Entre novamente.")
-        return cls(email=email, user_id=user_id, tenant_id=tenant)
+        return cls(email=email, user_id=user_id)
 
     @property
     def can_edit(self):
-        return bool(self.user_id and self.tenant_id and self.email in EDITOR_EMAILS)
+        return bool(self.user_id and self.email in EDITOR_EMAILS)
 
 
 def validate_month(month: date):

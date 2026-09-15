@@ -4,7 +4,7 @@
 
 ## Público e decisões
 
-- Acesso já definido para a tela de adiantamento: usuários autenticados no tenant da organização podem consultar; somente `lais.vendrasco@ambar.tech` e `leonardo.watanabe@ambar.tech` podem preencher e salvar. O público das demais telas será definido quando elas forem implementadas.
+- Acesso já definido para a tela de adiantamento: **confirmado pelo usuário em 15/09/2026**, usuários válidos cadastrados no Supabase Authentication podem consultar; somente `lais.vendrasco@ambar.tech` e `leonardo.watanabe@ambar.tech` podem preencher e salvar. O público das demais telas será definido quando elas forem implementadas.
 - Qual decisão o painel deve ajudar a tomar: **confirmado pelo usuário em 14/09/2026**, acompanhar se as vendas de cada região estão no ritmo necessário para atingir sua meta mensal, considerando os dias úteis decorridos e restantes.
 - Visibilidade já definida: a tabela de adiantamento mostra todas as regiões aos usuários autenticados. Acompanhamento de vendas e XP deve preservar o resumo por região; restrições adicionais por usuário ainda não foram solicitadas.
 

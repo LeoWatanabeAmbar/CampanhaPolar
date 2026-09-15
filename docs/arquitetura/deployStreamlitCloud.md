@@ -24,41 +24,25 @@ O painel é publicado a partir do repositório privado `LeoWatanabeAmbar/Campanh
 Nunca grave os valores reais no GitHub. Cole este conteúdo no campo **Secrets** do Streamlit, substituindo todos os marcadores:
 
 ```toml
+SUPABASE_URL = "https://SEU_PROJETO.supabase.co"
+SUPABASE_PUBLISHABLE_KEY = "sb_publishable_SUBSTITUA"
+
 [database]
 url = "postgresql+psycopg2://USUARIO:SENHA_URL_ENCODED@HOST:5432/postgres"
-
-[access]
-microsoft_tenant_id = "TENANT_ID_DA_ORGANIZACAO"
-
-[auth]
-redirect_uri = "https://SUBDOMINIO.streamlit.app/oauth2callback"
-cookie_secret = "SEGREDO_LONGO_ALEATORIO"
-
-[auth.microsoft]
-client_id = "APPLICATION_CLIENT_ID"
-client_secret = "CLIENT_SECRET_VALUE"
-server_metadata_url = "https://login.microsoftonline.com/TENANT_ID_DA_ORGANIZACAO/v2.0/.well-known/openid-configuration"
 ```
 
 Para o Supabase, prefira a conexão **Session pooler**, porta 5432, copiada em **Connect** no painel do projeto. Ela funciona em redes IPv4 e aceita conexões persistentes. Se a senha contiver `@`, `:`, `/`, `#`, `%`, espaço ou outro caractere reservado, use a senha codificada para URL.
 
-O `cookie_secret` deve ser aleatório e diferente do segredo do Microsoft Entra. Ele pode ser gerado localmente com:
+`SUPABASE_PUBLISHABLE_KEY` deve receber a chave publicável do projeto, normalmente iniciada por `sb_publishable_`. Não use `service_role`, JWT com papel `service_role` ou chave iniciada por `sb_secret_`; essas credenciais têm privilégios administrativos e o aplicativo rejeita seu uso no login.
 
-```powershell
-python -c "import secrets; print(secrets.token_urlsafe(48))"
-```
+## 4. Preparar os usuários
 
-## 4. Autorizar a URL no Microsoft Entra
+1. No Supabase, abra **Authentication → Providers → Email** e mantenha habilitado o login por e-mail e senha.
+2. Desative o cadastro público de usuários para que somente contas administradas tenham acesso.
+3. Em **Authentication → Users**, crie ou convide as pessoas que poderão entrar no painel.
+4. Confirme que Laís e Leonardo usam exatamente os e-mails autorizados no código; esses dois usuários podem editar o adiantamento e os demais possuem consulta.
 
-No Azure Portal:
-
-1. Abra **Microsoft Entra ID → App registrations**.
-2. Selecione o aplicativo usado pelo painel.
-3. Abra **Authentication → Platform configurations → Web**.
-4. Adicione exatamente `https://SUBDOMINIO.streamlit.app/oauth2callback` em **Redirect URIs**.
-5. Salve. A URL local `http://localhost:8501/oauth2callback` pode permanecer cadastrada para desenvolvimento.
-
-O valor de `client_secret` no Streamlit é o **Value** do segredo criado em **Certificates & secrets**, não o Secret ID.
+O aplicativo usa a API do Supabase Authentication para validar `auth.users`; não consulta diretamente a tabela protegida nem oferece cadastro público.
 
 ## 5. Preparar o banco
 
@@ -73,16 +57,16 @@ Antes do primeiro uso, execute [adiantamento_meta.sql](../../sql/adiantamento_me
 Clique em **Deploy** e acompanhe os logs. Depois verifique:
 
 1. abertura da tela de login;
-2. entrada com uma conta do tenant configurado;
+2. entrada com e-mail e senha de uma conta cadastrada em `auth.users`;
 3. carregamento das regiões e metas de setembro;
 4. consulta com um usuário comum;
 5. salvamento com Laís ou Leonardo;
 6. persistência após recarregar a página.
 
-Como o repositório é privado, o aplicativo nasce privado no Community Cloud. Os visualizadores podem ser convidados nas configurações de compartilhamento. Se o acesso do Streamlit for tornado público no futuro, o login Microsoft do próprio painel continuará restringindo a leitura ao tenant configurado.
+Como o repositório é privado, o aplicativo nasce privado no Community Cloud. Para usar somente o login do Supabase, altere **App settings → Sharing** para aplicativo público; a URL ficará acessível, mas nenhum dado será carregado antes da autenticação do próprio painel. Se o aplicativo permanecer privado no Community Cloud, cada pessoa precisará passar pelo acesso do Streamlit e depois pelo login do Supabase.
 
 ## Atualizações
 
 O Community Cloud acompanha o GitHub. Novos commits enviados para `main` atualizam o aplicativo automaticamente; mudanças em `requirements.txt` provocam a reinstalação das dependências.
 
-Referências oficiais: [publicar um aplicativo](https://docs.streamlit.io/deploy/streamlit-community-cloud/deploy-your-app/deploy), [secrets no Community Cloud](https://docs.streamlit.io/deploy/streamlit-community-cloud/deploy-your-app/secrets-management), [login com Microsoft](https://docs.streamlit.io/develop/tutorials/authentication/microsoft) e [conexões PostgreSQL do Supabase](https://supabase.com/docs/guides/database/connecting-to-postgres).
+Referências oficiais: [publicar um aplicativo](https://docs.streamlit.io/deploy/streamlit-community-cloud/deploy-your-app/deploy), [secrets no Community Cloud](https://docs.streamlit.io/deploy/streamlit-community-cloud/deploy-your-app/secrets-management), [login com senha no Supabase](https://supabase.com/docs/guides/auth/passwords), [gestão de usuários](https://supabase.com/docs/guides/auth/managing-user-data) e [conexões PostgreSQL do Supabase](https://supabase.com/docs/guides/database/connecting-to-postgres).

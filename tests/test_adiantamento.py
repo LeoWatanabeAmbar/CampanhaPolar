@@ -1,4 +1,4 @@
-from datetime import date, datetime, timedelta, timezone
+from datetime import date
 
 import pytest
 from sqlalchemy import create_engine, func, insert, select
@@ -10,9 +10,9 @@ from polar.adiantamento import (
 )
 
 MONTH = date(2026, 9, 1)
-EDITOR = Identity("lais.vendrasco@ambar.tech", "user-lais", "tenant-ambar")
-LEONARDO = Identity("leonardo.watanabe@ambar.tech", "user-leonardo", "tenant-ambar")
-READER = Identity("leitor@ambar.tech", "user-leitor", "tenant-ambar")
+EDITOR = Identity("lais.vendrasco@ambar.tech", "user-lais")
+LEONARDO = Identity("leonardo.watanabe@ambar.tech", "user-leonardo")
+READER = Identity("leitor@ambar.tech", "user-leitor")
 
 
 @pytest.fixture
@@ -35,14 +35,15 @@ def test_authorization_rejects_reader_before_database_access(repository):
 
 
 @pytest.mark.parametrize("editor", [EDITOR, LEONARDO])
-def test_oidc_requires_login_and_trusted_tenant(editor):
-    claims = {"tid": "tenant-ambar", "oid": editor.user_id, "preferred_username": editor.email.upper()}
-    assert Identity.from_claims(True, claims, "tenant-ambar").can_edit
-    for logged, tenant in [(False, "tenant-ambar"), (True, "other-tenant")]:
-        with pytest.raises(PermissionDenied):
-            Identity.from_claims(logged, claims, tenant)
+def test_identity_uses_validated_supabase_user(editor):
+    identity = Identity.from_authenticated_user({
+        "id": editor.user_id,
+        "email": editor.email.upper(),
+    })
+    assert identity.can_edit
+    assert identity.email == editor.email
     with pytest.raises(PermissionDenied):
-        Identity.from_claims(True, dict(claims, exp=(datetime.now(timezone.utc) - timedelta(minutes=1)).timestamp()), "tenant-ambar")
+        Identity.from_authenticated_user({"id": "", "email": editor.email})
 
 
 @pytest.mark.parametrize("editor", [EDITOR, LEONARDO])

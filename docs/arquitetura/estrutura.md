@@ -46,8 +46,8 @@ A [tabela derivada de enquadramento](../dados/dadoEnquadramento.md), proposta em
 
 - Onde o painel será executado: computador local, servidor interno ou outro ambiente: [PREENCHER]
 - Número aproximado de usuários: [PREENCHER]
-- Login da tela de adiantamento: Microsoft OIDC no tenant da organização, seguindo o padrão do Gestão Comercial.
-- Permissões do adiantamento, confirmadas pelo usuário: `lais.vendrasco@ambar.tech` e `leonardo.watanabe@ambar.tech` editam e salvam; os demais usuários autenticados consultam. O servidor valida novamente a identidade e a permissão em cada gravação. Demais permissões do futuro painel a definir.
+- Login do painel: **confirmado pelo usuário em 15/09/2026**, e-mail e senha do Supabase Authentication, usando as contas cadastradas em `auth.users`. O aplicativo autentica pela API oficial e não consulta diretamente o schema `auth`.
+- Permissões do adiantamento, confirmadas pelo usuário: `lais.vendrasco@ambar.tech` e `leonardo.watanabe@ambar.tech` editam e salvam; os demais usuários autenticados consultam. O servidor revalida a sessão do Supabase e a permissão em cada gravação. Demais permissões do futuro painel a definir.
 - Uso principal em computador, celular ou ambos: [PREENCHER]
 - Há restrições para armazenamento ou exibição dos dados: [PREENCHER]
 

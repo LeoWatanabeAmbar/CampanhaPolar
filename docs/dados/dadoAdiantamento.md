@@ -13,8 +13,8 @@ A primeira tela está implementada em [app.py](../../app.py). Ela apresenta uma 
 | Região fictícia A | Marcado | Marcado | Desmarcado | Exemplo fictício de conferência |
 | Região fictícia B | Marcado | Desmarcado | Desmarcado | Exemplo fictício |
 
-- **Somente `lais.vendrasco@ambar.tech` e `leonardo.watanabe@ambar.tech` podem preencher e salvar.** A identificação vem do login Microsoft validado no tenant da organização, seguindo o padrão do Gestão Comercial.
-- Os demais usuários autenticados nesse tenant visualizam os registros e suas últimas atualizações, sem edição.
+- **Somente `lais.vendrasco@ambar.tech` e `leonardo.watanabe@ambar.tech` podem preencher e salvar.** A identificação vem da sessão revalidada no Supabase Authentication.
+- Os demais usuários válidos cadastrados em `auth.users` visualizam os registros e suas últimas atualizações, sem edição.
 - A autorização é verificada no servidor em cada gravação; esconder o botão não é o único controle.
 - O botão **Salvar alterações** grava os checks e observações no PostgreSQL/Supabase. Cada competência tem registros próprios.
 - **Participação confirmada pelo usuário em 14/09/2026:** as linhas vêm somente das regiões de Canais e Construção com meta positiva na competência selecionada. O cadastro de vendedores ativos e registros antigos não criam linhas sem meta. Um mês futuro fica sem regiões até suas metas serem publicadas; depois da publicação, a tela passa a exibi-las pela situação atual.
@@ -67,4 +67,4 @@ A tela registra as confirmações por região e mês e exibe o XP regional corre
 
 Código funcional, autorização e salvamento implementados e testados localmente. O SQL de criação está em [sql/adiantamento_meta.sql](../../sql/adiantamento_meta.sql). Como não foram encontradas credenciais de banco ou login nesta pasta, as tabelas ainda não foram criadas no Supabase por esta implementação.
 
-A preparação do banco e a configuração do login estão no [README do projeto](../../README.md). Os testes exercitam salvamento, leitura por outros usuários, independência das fases/meses, correções, histórico e conflitos. O login Microsoft e o PostgreSQL reais ainda exigem a configuração do ambiente.
+A preparação do banco e a configuração do login estão no [README do projeto](../../README.md). Os testes exercitam login, renovação da sessão, salvamento, leitura por outros usuários, independência das fases/meses, correções, histórico e conflitos. O Supabase Auth e o PostgreSQL reais ainda exigem a configuração do ambiente.

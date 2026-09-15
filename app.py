@@ -10,6 +10,7 @@ import streamlit as st
 from sqlalchemy import create_engine
 from sqlalchemy.exc import SQLAlchemyError
 
+from polar.autenticacao import AuthenticationServiceError, SupabaseAuthenticator
 from polar.adiantamento import (
     EDITOR_EMAILS,
     FIELDS,
@@ -198,16 +199,13 @@ def get_repository(url: str):
 
 
 def configuration():
-    """Lê banco e tenant sem expor segredos na interface."""
+    """Lê banco e Supabase Auth sem expor segredos na interface."""
     try:
         database_url = str(st.secrets["database"]["url"])
-        tenant_id = str(st.secrets["access"]["microsoft_tenant_id"])
-        provider = st.secrets["auth"]["microsoft"]
-        metadata_url = str(provider["server_metadata_url"])
-        expected = f"https://login.microsoftonline.com/{tenant_id}/v2.0/.well-known/openid-configuration"
-        if not tenant_id or metadata_url.lower() != expected.lower():
-            raise ValueError("O login Microsoft deve usar o tenant específico da organização.")
-        return database_url, tenant_id
+        supabase_url = str(st.secrets["SUPABASE_URL"])
+        publishable_key = str(st.secrets["SUPABASE_PUBLISHABLE_KEY"])
+        authenticator = SupabaseAuthenticator(supabase_url, publishable_key)
+        return database_url, authenticator
     except (KeyError, FileNotFoundError, ValueError):
         render_page_header(
             "Campanha Polar",
@@ -218,13 +216,18 @@ def configuration():
         st.stop()
 
 
-def current_identity(tenant_id: str):
-    """Cria a identidade confiável a partir da sessão Microsoft."""
-    return Identity.from_claims(st.user.is_logged_in, st.user.to_dict(), tenant_id)
+def current_identity(authenticator: SupabaseAuthenticator):
+    """Revalida a sessão do Supabase e cria a identidade usada nas permissões."""
+    saved_session = st.session_state.get("supabase_auth_session")
+    if not isinstance(saved_session, dict):
+        raise PermissionDenied("Faça login para acessar o painel.")
+    refreshed_session = authenticator.restore_session(saved_session)
+    st.session_state["supabase_auth_session"] = refreshed_session
+    return Identity.from_authenticated_user(refreshed_session)
 
 
-def render_login():
-    """Exibe a entrada corporativa no padrão do Gestão Comercial."""
+def render_login(authenticator: SupabaseAuthenticator):
+    """Exibe a entrada por e-mail e senha do Supabase Auth."""
     st.markdown(
         """
         <style>
@@ -238,13 +241,26 @@ def render_login():
     )
     if LOGO_PATH.is_file():
         st.image(str(LOGO_PATH), width=210)
-    render_page_header("Campanha Polar", "Entre com sua conta corporativa Microsoft para continuar.")
-    if st.button("Entrar com Microsoft", type="primary", width="stretch"):
-        st.login("microsoft")
-    st.caption("A conta permanece conectada neste navegador por até 30 dias.")
+    render_page_header("Campanha Polar", "Entre com seu e-mail e senha para continuar.")
+    with st.form("supabase_login"):
+        email = st.text_input("E-mail", autocomplete="email")
+        password = st.text_input("Senha", type="password", autocomplete="current-password")
+        submitted = st.form_submit_button("Entrar", type="primary", width="stretch")
+    if submitted:
+        try:
+            session = authenticator.sign_in(email, password)
+        except AuthenticationServiceError:
+            st.error("Não foi possível acessar o serviço de autenticação. Tente novamente.")
+        else:
+            if session is None:
+                st.error("E-mail ou senha inválidos.")
+            else:
+                st.session_state["supabase_auth_session"] = session
+                st.rerun()
+    st.caption("O acesso é restrito aos usuários cadastrados no Supabase Authentication.")
 
 
-def render_sidebar(identity: Identity):
+def render_sidebar(identity: Identity, authenticator: SupabaseAuthenticator):
     """Renderiza navegação, competência e conta conectada."""
     with st.sidebar:
         st.caption("NAVEGAÇÃO")
@@ -261,8 +277,13 @@ def render_sidebar(identity: Identity):
         access = "Pode editar o adiantamento" if identity.can_edit else "Acesso para consulta"
         st.caption(access)
         if st.button("Sair", key="polar_logout", width="stretch"):
+            saved_session = st.session_state.get("supabase_auth_session", {})
+            try:
+                authenticator.sign_out(saved_session)
+            except AuthenticationServiceError:
+                pass
             st.session_state.clear()
-            st.logout()
+            st.rerun()
     return page, date(2026, month_number, 1)
 
 
@@ -393,7 +414,12 @@ def render_table(repository: Repository, month: date, identity: Identity, rechec
         st.rerun()
 
 
-def render_advancement(repository: Repository, month: date, identity: Identity, tenant: str):
+def render_advancement(
+    repository: Repository,
+    month: date,
+    identity: Identity,
+    authenticator: SupabaseAuthenticator,
+):
     """Compõe a página de preenchimento do adiantamento."""
     render_page_header(
         "Adiantamento de meta",
@@ -404,7 +430,7 @@ def render_advancement(repository: Repository, month: date, identity: Identity, 
     st.caption("Marcado significa atingiu; desmarcado significa não atingiu.")
     if message := st.session_state.pop("advance_saved", None):
         st.success(message)
-    render_table(repository, month, identity, lambda: current_identity(tenant))
+    render_table(repository, month, identity, lambda: current_identity(authenticator))
 
 
 def main():
@@ -414,25 +440,25 @@ def main():
     if LOGO_PATH.is_file():
         st.logo(str(LOGO_PATH), size="large")
     apply_polar_style()
-    url, tenant = configuration()
-    if not st.user.is_logged_in:
-        render_login()
+    url, authenticator = configuration()
+    if "supabase_auth_session" not in st.session_state:
+        render_login(authenticator)
         st.stop()
     try:
-        identity = current_identity(tenant)
-    except PermissionDenied as error:
-        st.warning(str(error))
-        if st.button("Entrar novamente"):
-            st.logout()
+        identity = current_identity(authenticator)
+    except (PermissionDenied, AuthenticationServiceError):
+        st.session_state.pop("supabase_auth_session", None)
+        st.warning("Sua sessão expirou ou não pôde ser validada. Entre novamente.")
+        render_login(authenticator)
         st.stop()
 
-    page, month = render_sidebar(identity)
+    page, month = render_sidebar(identity, authenticator)
     try:
         repository = get_repository(url)
         if page == "Visão geral":
             render_overview(repository, month)
         else:
-            render_advancement(repository, month, identity, tenant)
+            render_advancement(repository, month, identity, authenticator)
     except (PermissionDenied, ConcurrentChange, ValueError) as error:
         st.warning(str(error))
         if st.button("Buscar versão atual"):

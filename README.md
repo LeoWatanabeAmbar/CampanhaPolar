@@ -5,18 +5,18 @@ Primeira versão do painel implementada no padrão visual do Gestão Comercial, 
 - **Visão geral:** meta total do mês, regiões participantes, fases confirmadas, XP regional de adiantamento, cobertura por fase e detalhamento regional.
 - **Adiantamento de meta:** uma linha por região e mês, com checks independentes para 32% na primeira semana, 56% na segunda e 80% na terceira.
 
-O login usa Microsoft OIDC, seguindo o padrão do Gestão Comercial. Somente as contas `lais.vendrasco@ambar.tech` e `leonardo.watanabe@ambar.tech`, autenticadas no tenant configurado, podem preencher e salvar. Os demais usuários autenticados desse tenant podem consultar. A autorização é conferida novamente no servidor a cada salvamento.
+O login usa e-mail e senha do Supabase Authentication. Qualquer conta válida cadastrada em `auth.users` pode consultar o painel. Somente `lais.vendrasco@ambar.tech` e `leonardo.watanabe@ambar.tech` podem preencher e salvar. A sessão é revalidada no Supabase e a autorização é conferida novamente no servidor a cada salvamento.
 
 ## Configuração e execução
 
 1. Instale as dependências: `python -m pip install -r requirements.txt`.
 2. Execute [sql/adiantamento_meta.sql](sql/adiantamento_meta.sql) no Supabase/PostgreSQL. O script cria somente as duas tabelas novas de registro e histórico no schema `comercial_marts`. Se as tabelas já foram criadas com a permissão exclusiva da Laís, aplique também a [migração que inclui Leonardo](sql/migrations/20260914_adicionar_leonardo_adiantamento.sql), que preserva os dados existentes.
-3. Copie [.streamlit/secrets.example.toml](.streamlit/secrets.example.toml) para `.streamlit/secrets.toml` e configure a conexão privada PostgreSQL e o aplicativo Microsoft Entra do tenant da organização. Não use `common` ou `organizations` no endereço do provedor. Cadastre a URL de retorno `http://localhost:8501/oauth2callback` no aplicativo Entra para a execução local. Em hospedagem, use sua URL HTTPS.
+3. Copie [.streamlit/secrets.example.toml](.streamlit/secrets.example.toml) para `.streamlit/secrets.toml` e configure a conexão privada PostgreSQL, `SUPABASE_URL` e uma `SUPABASE_PUBLISHABLE_KEY`. Nunca use `service_role` ou `sb_secret_...` no fluxo de login.
 4. Inicie: `python -m streamlit run app.py`.
 
-Para publicar no Streamlit Community Cloud, siga o [guia de implantação](docs/arquitetura/deployStreamlitCloud.md). Ele registra o repositório, branch, arquivo principal, secrets, conexão Supabase e callback do Microsoft Entra necessários para este painel.
+Para publicar no Streamlit Community Cloud, siga o [guia de implantação](docs/arquitetura/deployStreamlitCloud.md). Ele registra o repositório, branch, arquivo principal, secrets e conexões Supabase necessários para este painel.
 
-A integração OIDC segue a [documentação oficial do Streamlit](https://docs.streamlit.io/develop/tutorials/authentication/microsoft). Use uma conexão de banco restrita ao servidor, com leitura de `metas_comerciais` e `app_vendedor_regiao_time` e acesso às novas tabelas. O script habilita RLS e remove acesso direto das funções `anon` e `authenticated` da API Supabase; a conexão privada precisa pertencer ao proprietário das tabelas ou a um papel de servidor autorizado a operar com RLS. Não disponibilize a credencial de banco ao navegador.
+O Supabase Authentication recebe e-mail e senha e devolve os tokens da sessão; a aplicação não consulta `auth.users` diretamente. O cliente de login usa somente a chave publicável. A conexão PostgreSQL permanece restrita ao servidor, com leitura de `metas_comerciais` e acesso às novas tabelas. O script habilita RLS e remove acesso direto das funções `anon` e `authenticated` da API Supabase; a conexão privada precisa pertencer ao proprietário das tabelas ou a um papel de servidor autorizado a operar com RLS. Não disponibilize a credencial de banco ao navegador.
 
 **Situação local:** a visão geral, a tela de adiantamento, as regras de autorização e o SQL estão implementados. Não foram encontradas credenciais de login ou banco nesta pasta, portanto a migração não foi aplicada no Supabase e o login real ainda exige configuração. O aplicativo mostra uma mensagem de configuração pendente nesse estado.
 
@@ -37,4 +37,4 @@ Instale a ferramenta de testes com `python -m pip install "pytest>=8,<9"` e exec
 
 `python -m pytest -q`
 
-Os testes verificam autorização, persistência em banco temporário, independência das fases e dos meses, correções e histórico, rollback em conflito e interação da tela com editor/leitor. A integração com PostgreSQL e o login Microsoft reais dependem da configuração do ambiente.
+Os testes verificam autenticação e renovação de sessão do Supabase, autorização, persistência em banco temporário, independência das fases e dos meses, correções e histórico, rollback em conflito e interação da tela com editor/leitor. A integração com o PostgreSQL e o Supabase Auth reais depende da configuração do ambiente.
