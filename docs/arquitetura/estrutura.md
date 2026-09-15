@@ -40,7 +40,7 @@ flowchart TD
 
 O código do dataflow e do Gestão Comercial foi examinado; tabelas e disponibilidade foram conferidas por conexão PostgreSQL somente leitura em 09/09/2026. A tela de adiantamento passou a usar Supabase Auth e Data API em 15/09/2026; ainda precisa dos dois secrets públicos no ambiente e da execução do SQL no projeto. As demais integrações permanecem para as próximas etapas. Os contratos e pendências estão em [dadoVenda.md](../dados/dadoVenda.md) e [dadoMeta.md](../dados/dadoMeta.md).
 
-A [tabela derivada de enquadramento](../dados/dadoEnquadramento.md), proposta em 10/09/2026, usará o histórico completo para classificar os pedidos da campanha quanto a clientes novos, reativados e mix. Sua materialização no banco ainda não foi implementada.
+A [tabela derivada de enquadramento](../dados/dadoEnquadramento.md), proposta em 10/09/2026, usará o histórico completo para classificar os pedidos da campanha quanto a clientes novos, reativados e mix. Sua materialização no banco ainda não foi implementada. A página atual de clientes novos calcula esse indicador sob demanda por uma função da Data API, documentada em [Visão de clientes novos](../dados/visaoClientesNovos.md).
 
 ## Acesso e uso
 
@@ -58,6 +58,7 @@ Descreva as telas desejadas em linguagem simples. Exemplos possíveis: visão ge
 | Tela desejada | O que deve mostrar | Quem pode acessar |
 | --- | --- | --- |
 | Visão geral | Meta mensal, regiões participantes, cobertura das três fases, XP regional de adiantamento e tabela por região | Usuários autenticados consultam |
+| Clientes novos | Primeira compra elegível por grupo, pedidos consolidados no dia, responsáveis, regiões, valor líquido, atribuição e XP bruto | Usuários autenticados consultam |
 | Adiantamento de meta | Checks por região e mês para 32%, 56% e 80%, observações e últimas atualizações | Usuários autenticados consultam; somente `lais.vendrasco@ambar.tech` e `leonardo.watanabe@ambar.tech` salvam |
 
 ## Identidade visual

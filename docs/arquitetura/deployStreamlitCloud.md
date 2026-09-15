@@ -43,11 +43,12 @@ O aplicativo usa a API do Supabase Authentication para validar `auth.users`; nã
 
 ## 5. Preparar o banco
 
-Antes do primeiro uso, execute [adiantamento_meta.sql](../../sql/adiantamento_meta.sql) no SQL Editor do Supabase. Em um projeto que já recebeu a versão anterior do script, execute [20260915_usar_data_api.sql](../../sql/migrations/20260915_usar_data_api.sql). O SQL:
+Antes do primeiro uso, execute [adiantamento_meta.sql](../../sql/adiantamento_meta.sql) e [clientes_novos.sql](../../sql/clientes_novos.sql) no SQL Editor do Supabase. Em um projeto que já recebeu a versão anterior do adiantamento, execute também [20260915_usar_data_api.sql](../../sql/migrations/20260915_usar_data_api.sql). Os scripts:
 
 - mantém as tabelas de adiantamento e histórico sem acesso direto pela API;
 - cria uma função de leitura para usuários autenticados;
 - cria uma função de gravação que confere no JWT se a conta é Laís ou Leonardo;
+- cria uma função de consulta dos primeiros eventos elegíveis de cada grupo comercial;
 - valida competência, região, tipos, versões e histórico dentro do banco.
 
 As funções ficam no schema `public`, já atendido pela Data API padrão, e acessam internamente as tabelas de `comercial_marts`. Não é preciso expor o schema `comercial_marts` nas configurações da API.
@@ -59,9 +60,10 @@ Clique em **Deploy** e acompanhe os logs. Depois verifique:
 1. abertura da tela de login;
 2. entrada com e-mail e senha de uma conta cadastrada em `auth.users`;
 3. carregamento das regiões e metas de setembro;
-4. consulta com um usuário comum;
-5. salvamento com Laís ou Leonardo;
-6. persistência após recarregar a página.
+4. carregamento dos clientes novos e seus primeiros eventos;
+5. consulta com um usuário comum;
+6. salvamento com Laís ou Leonardo;
+7. persistência após recarregar a página.
 
 Como o repositório é privado, o aplicativo nasce privado no Community Cloud. Para usar somente o login do Supabase, altere **App settings → Sharing** para aplicativo público; a URL ficará acessível, mas nenhum dado será carregado antes da autenticação do próprio painel. Se o aplicativo permanecer privado no Community Cloud, cada pessoa precisará passar pelo acesso do Streamlit e depois pelo login do Supabase.
 

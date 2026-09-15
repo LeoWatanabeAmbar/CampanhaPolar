@@ -1,8 +1,9 @@
 # Campanha Polar
 
-Primeira versão do painel implementada no padrão visual do Gestão Comercial, com navegação lateral e duas páginas:
+Painel implementado no padrão visual do Gestão Comercial, com navegação lateral e três páginas:
 
 - **Visão geral:** meta total do mês, regiões participantes, fases confirmadas, XP regional de adiantamento, cobertura por fase e detalhamento regional.
+- **Clientes novos:** primeiros eventos elegíveis por grupo comercial, pedidos, vendedores, regiões, valor líquido e XP bruto do evento.
 - **Adiantamento de meta:** uma linha por região e mês, com checks independentes para 32% na primeira semana, 56% na segunda e 80% na terceira.
 
 O login usa e-mail e senha do Supabase Authentication. Qualquer conta válida cadastrada em `auth.users` pode consultar o painel. Somente `lais.vendrasco@ambar.tech` e `leonardo.watanabe@ambar.tech` podem preencher e salvar. A sessão é revalidada no Supabase e o mesmo JWT acessa funções restritas da Data API.
@@ -10,7 +11,7 @@ O login usa e-mail e senha do Supabase Authentication. Qualquer conta válida ca
 ## Configuração e execução
 
 1. Instale as dependências: `python -m pip install -r requirements.txt`.
-2. Execute [sql/adiantamento_meta.sql](sql/adiantamento_meta.sql) no SQL Editor do Supabase. O script cria as duas tabelas de registro e histórico no schema `comercial_marts` e duas funções públicas restritas para leitura e gravação pela Data API. Em uma instalação que já recebeu o SQL anterior, execute [20260915_usar_data_api.sql](sql/migrations/20260915_usar_data_api.sql).
+2. Execute [sql/adiantamento_meta.sql](sql/adiantamento_meta.sql) e [sql/clientes_novos.sql](sql/clientes_novos.sql) no SQL Editor do Supabase. O primeiro cria as tabelas e funções do adiantamento; o segundo habilita a consulta autenticada dos clientes novos. Em uma instalação que recebeu a versão anterior do adiantamento, execute [20260915_usar_data_api.sql](sql/migrations/20260915_usar_data_api.sql) antes do SQL de clientes novos.
 3. Copie [.streamlit/secrets.example.toml](.streamlit/secrets.example.toml) para `.streamlit/secrets.toml` e configure somente `SUPABASE_URL` e `SUPABASE_PUBLISHABLE_KEY`. Nunca use `service_role` ou `sb_secret_...`.
 4. Inicie: `python -m streamlit run app.py`.
 

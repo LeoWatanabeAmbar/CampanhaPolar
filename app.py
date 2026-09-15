@@ -18,6 +18,7 @@ from polar.adiantamento import (
     PermissionDenied,
     Repository,
 )
+from polar.clientes_novos import NewCustomersRepository
 
 MONTHS = {9: "Setembro", 10: "Outubro", 11: "Novembro", 12: "Dezembro"}
 LABELS = {
@@ -251,7 +252,7 @@ def render_sidebar(identity: Identity, authenticator: SupabaseAuthenticator):
         st.caption("NAVEGAÇÃO")
         page = st.radio(
             "Página",
-            ("Visão geral", "Adiantamento de meta"),
+            ("Visão geral", "Clientes novos", "Adiantamento de meta"),
             label_visibility="collapsed",
         )
         st.divider()
@@ -316,6 +317,100 @@ def render_overview(repository: Repository, month: date):
                 "Progresso", min_value=0.0, max_value=1.0, format="percent",
             ),
             "XP": st.column_config.NumberColumn("XP", format="%d XP"),
+        },
+        hide_index=True,
+        width="stretch",
+    )
+
+
+def render_new_customers(repository: NewCustomersRepository, month: date):
+    """Exibe os primeiros eventos de compra identificados no histórico desde 2022."""
+    render_page_header(
+        "Clientes novos",
+        "Acompanhe os grupos em sua primeira compra elegível e a atribuição dos XP.",
+        month,
+    )
+    rows = repository.load(month)
+    if not rows:
+        st.info("Nenhum cliente novo foi identificado nesta competência.")
+        return
+
+    frame = pd.DataFrame(rows)
+    region_names = sorted({
+        region.strip()
+        for value in frame["regioes"]
+        for region in str(value).split(" · ")
+        if region.strip()
+    })
+    filter_region, filter_status, filter_search = st.columns((1, 1, 2))
+    with filter_region:
+        selected_region = st.selectbox("Região", ["Todas", *region_names])
+    with filter_status:
+        selected_status = st.selectbox("Atribuição", ["Todas", "Confirmadas", "Pendentes"])
+    with filter_search:
+        search = st.text_input("Buscar", placeholder="Grupo, pedido ou vendedor")
+
+    filtered = frame.copy()
+    if selected_region != "Todas":
+        filtered = filtered[filtered["regioes"].map(
+            lambda value: selected_region in {item.strip() for item in str(value).split(" · ")}
+        )]
+    pending = filtered["situacao_atribuicao"].str.startswith("Pendente")
+    if selected_status == "Confirmadas":
+        filtered = filtered[~pending]
+    elif selected_status == "Pendentes":
+        filtered = filtered[pending]
+    if normalized_search := search.strip():
+        searchable = filtered[[
+            "grupo_comercial_id", "nome_grupo_comercial", "pedidos", "vendedores", "regioes",
+        ]].astype(str).agg(" ".join, axis=1)
+        filtered = filtered[searchable.str.contains(normalized_search, case=False, regex=False)]
+
+    a, b, c, d = st.columns(4)
+    a.metric("Clientes novos", len(filtered))
+    b.metric("Pedidos no primeiro evento", int(filtered["quantidade_pedidos"].sum()))
+    c.metric("Valor líquido elegível", format_currency_br(float(filtered["valor_liquido_elegivel"].sum())))
+    d.metric("XP bruto confirmado", f"{float(filtered['xp_evento'].sum()):g} XP")
+
+    pending_count = int(filtered["situacao_atribuicao"].str.startswith("Pendente").sum())
+    if pending_count:
+        st.warning(
+            f"{pending_count} cliente(s) novo(s) possuem atribuição pendente e ainda não geram XP."
+        )
+
+    st.subheader("Primeiros eventos de compra")
+    st.caption(
+        "Pedidos do mesmo grupo na mesma data formam um evento. O XP exibido é anterior ao teto "
+        "individual de 100 XP para clientes novos."
+    )
+    display = filtered.copy()
+    display["data_primeira_compra"] = pd.to_datetime(
+        display["data_primeira_compra"], errors="coerce"
+    ).dt.strftime("%d/%m/%Y")
+    display = display.rename(columns={
+        "grupo_comercial_id": "Código",
+        "nome_grupo_comercial": "Grupo comercial",
+        "data_primeira_compra": "Primeira compra",
+        "pedidos": "Pedidos",
+        "quantidade_pedidos": "Qtd. pedidos",
+        "vendedores": "Vendedores",
+        "regioes": "Regiões",
+        "segmento": "Segmento",
+        "valor_liquido_elegivel": "Valor elegível",
+        "situacao_atribuicao": "Atribuição",
+        "xp_evento": "XP do evento",
+        "xp_por_vendedor": "XP por vendedor",
+    })
+    st.dataframe(
+        display[[
+            "Primeira compra", "Código", "Grupo comercial", "Pedidos", "Qtd. pedidos",
+            "Vendedores", "Regiões", "Segmento", "Valor elegível", "Atribuição",
+            "XP do evento", "XP por vendedor",
+        ]],
+        column_config={
+            "Valor elegível": st.column_config.NumberColumn("Valor elegível", format="R$ %.2f"),
+            "XP do evento": st.column_config.NumberColumn("XP do evento", format="%.0f XP"),
+            "XP por vendedor": st.column_config.NumberColumn("XP por vendedor", format="%.0f XP"),
         },
         hide_index=True,
         width="stretch",
@@ -441,6 +536,8 @@ def main():
         repository = Repository(data_client)
         if page == "Visão geral":
             render_overview(repository, month)
+        elif page == "Clientes novos":
+            render_new_customers(NewCustomersRepository(data_client), month)
         else:
             render_advancement(repository, month, identity, authenticator)
     except (PermissionDenied, ConcurrentChange, ValueError) as error:

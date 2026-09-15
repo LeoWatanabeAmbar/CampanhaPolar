@@ -2,7 +2,7 @@
 
 Estes arquivos são roteiros para você descrever a campanha e as bases antes de desenvolver o painel em Streamlit.
 
-**Implementação solicitada em 14/09/2026:** a primeira tela funcional é o preenchimento manual de adiantamento por região e mês, disponível em [app.py](../app.py). Somente `lais.vendrasco@ambar.tech` e `leonardo.watanabe@ambar.tech` podem preencher e salvar; os demais usuários autenticados podem consultar. Código e testes estão prontos; conexão de banco e login ainda precisam ser configurados. Instruções no [README do projeto](../README.md).
+**Implementação atualizada em 15/09/2026:** o painel disponível em [app.py](../app.py) contém visão geral, clientes novos e preenchimento manual de adiantamento. Todos os usuários autenticados consultam; somente `lais.vendrasco@ambar.tech` e `leonardo.watanabe@ambar.tech` alteram o adiantamento. O acesso usa Supabase Auth e Data API, sem senha PostgreSQL no Streamlit. Instruções no [README do projeto](../README.md).
 
 ## Como preencher
 
@@ -33,6 +33,7 @@ Estes arquivos são roteiros para você descrever a campanha e as bases antes de
 | 14 | [Prévia de novos e reativados](dados/previaClientes.md) | Histórico de 323 pedidos, candidatos e pendências de grupo/segmento |
 | 15 | [Calendário da campanha](dados/calendarioCampanha.md) | Dias úteis de segunda a sexta, feriados nacionais e data de referência |
 | 16 | [Elegibilidade de vendas](dados/elegibilidadeVendas.md) | Cancelamentos, inadimplência por grupo, exceções SMART PODS/MRV e parte faturada |
+| 17 | [Visão de clientes novos](dados/visaoClientesNovos.md) | Página, filtros, consulta autenticada, XP bruto e limites atuais |
 
 Clientes e Budget podem estar nas mesmas fontes de vendas e metas. Se for o caso, basta indicar isso nos respectivos documentos; não é necessário criar novas bases.
 
@@ -40,7 +41,7 @@ Clientes e Budget podem estar nas mesmas fontes de vendas e metas. Se for o caso
 
 - Corrigir o cadastro dos clientes com grupo comercial pendente: a [prévia de clientes](dados/previaClientes.md) encontrou 75 pedidos sem grupo e 1 com código `00` sem correspondência no cadastro. O tratamento foi confirmado pelo usuário em 14/09/2026: aguardar a correção, sem avaliar esses clientes individualmente em substituição ao grupo. Também restam 3 pedidos com segmento pendente.
 - Confirmar a data operacional da apuração final; o período do PDF e do recorte atual vai de 01/09/2026 a 31/12/2026.
-- Configurar login e banco e aplicar o SQL da tela de adiantamento manual. As três fases mensais, as duas contas autorizadas e os XP por região já foram definidos: cada check `true` vale 10 XP, até 30 XP por mês e 120 XP na campanha. A primeira versão do painel já mostra esse total mensal na visão geral e na tela de edição. Não é necessário definir datas exatas das semanas nem validar os percentuais pelas vendas; a integração do XP ao total completo da campanha está descrita em [Dados de adiantamento](dados/dadoAdiantamento.md).
+- Configurar os dois secrets públicos do Supabase e aplicar os SQLs das páginas de adiantamento e clientes novos. As três fases mensais, as duas contas autorizadas e os XP por região já foram definidos: cada check `true` vale 10 XP, até 30 XP por mês e 120 XP na campanha. Não é necessário definir datas exatas das semanas nem validar os percentuais pelas vendas; a integração do XP ao total completo da campanha está descrita em [Dados de adiantamento](dados/dadoAdiantamento.md).
 - Definir o tratamento de atendimentos compartilhados com responsáveis incompletos ou com quantidade diferente de dois vendedores. Para um evento diário consolidado com exatamente dois vendedores identificados, o rateio já foi confirmado em 50% dos XP para cada um, mesmo quando os vendedores vierem de pedidos distintos do mesmo grupo e data. Pedidos com um vendedor atribuem 100% a ele. O histórico desde janeiro de 2022, os códigos de mix, os mínimos por evento diário e a lista KA também já foram definidos.
 - Validar o vínculo das notas faturadas e devolvidas aos pedidos e a representação dos cancelamentos e estornos na fonte. Cancelamentos, inadimplência, quitação, abatimento de todas as devoluções na competência original, exclusão de bonificações/remessas/transferências de mercadoria, estorno de nota com pedido ativo e recálculo após fechamentos anteriores já foram confirmados. Para recalcular mix, ainda é necessária uma fonte de devolução por produto/item. Fontes e limites em [Elegibilidade de vendas](dados/elegibilidadeVendas.md).
 - Acompanhar o cadastro das metas quando cada competência estiver disponível. O usuário confirmou que a meta de outubro só será conhecida em outubro; a ausência de metas futuras não impede o acompanhamento de setembro. Conferir as quatro metas no fechamento do quadrimestre.

@@ -1,10 +1,10 @@
 # Objetivo do painel
 
-**Confirmado pelo usuário:** desenvolver um painel em Streamlit para visualizar o atingimento da campanha XP Polar. A etapa começou com a documentação; em 14/09/2026 o usuário solicitou a primeira tela funcional: tabela de adiantamento por região e mês, com preenchimento manual e salvamento.
+**Confirmado pelo usuário:** desenvolver um painel em Streamlit para visualizar o atingimento da campanha XP Polar. A implementação contém visão geral, adiantamento por região e, desde 15/09/2026, uma página de clientes novos por competência.
 
 ## Público e decisões
 
-- Acesso já definido para a tela de adiantamento: **confirmado pelo usuário em 15/09/2026**, usuários válidos cadastrados no Supabase Authentication podem consultar; somente `lais.vendrasco@ambar.tech` e `leonardo.watanabe@ambar.tech` podem preencher e salvar. O público das demais telas será definido quando elas forem implementadas.
+- Acesso já definido: **confirmado pelo usuário em 15/09/2026**, usuários válidos cadastrados no Supabase Authentication podem consultar as telas; somente `lais.vendrasco@ambar.tech` e `leonardo.watanabe@ambar.tech` podem preencher e salvar o adiantamento.
 - Qual decisão o painel deve ajudar a tomar: **confirmado pelo usuário em 14/09/2026**, acompanhar se as vendas de cada região estão no ritmo necessário para atingir sua meta mensal, considerando os dias úteis decorridos e restantes.
 - Visibilidade já definida: a tabela de adiantamento mostra todas as regiões aos usuários autenticados. Acompanhamento de vendas e XP deve preservar o resumo por região; restrições adicionais por usuário ainda não foram solicitadas.
 
@@ -31,6 +31,7 @@ Marque as necessárias e acrescente outras.
 - Indicadores principais na primeira tela: **confirmado pelo usuário**, meta regional do mês disponível, realizado regional acumulado no mês, dias úteis restantes, meta diária, meta parcial até a referência, percentual de atingimento parcial e XP de vendas calculado para a região. Manter uma única meta e um único resultado regional mesmo com dois vendedores no mês. Proposta complementar: saldo da meta e venda necessária por dia útil restante.
 - Gráficos ou tabelas desejados: proposta de comparação do realizado acumulado com a meta parcial por dia útil, acompanhada de tabela por data para conferência. O formato visual definitivo permanece a definir.
 - Tabela de adiantamento solicitada e implementada: região × 1ª semana (32%), 2ª semana (56%) e 3ª semana (80%), com checks independentes, observações e salvamento. Somente `lais.vendrasco@ambar.tech` e `leonardo.watanabe@ambar.tech` podem preencher e salvar; os demais usuários autenticados visualizam. Os XP de atingimento de vendas permanecem vinculados à região.
+- Visão de clientes novos solicitada e implementada em 15/09/2026: indicadores mensais, filtros por região e atribuição, busca textual e detalhe do primeiro evento elegível de cada grupo. Exibe 10 XP brutos por evento confirmado, ou 5 XP para cada um dos dois vendedores, antes do teto individual acumulado de 100 XP.
 - XP de adiantamento, confirmado pelo usuário em 14/09/2026: vinculado à região, com 10 XP por fase confirmada, até 30 XP no mês e 120 XP na campanha. Dois vendedores na região não dividem nem duplicam os pontos. O painel já calcula e exibe o total mensal a partir dos checks salvos; a integração ao total completo da campanha permanece na etapa de apuração.
 - Filtros para o acompanhamento de metas: região, competência e data de referência. Outros filtros, como vendedor, gestor e segmento, permanecem a definir; eventual detalhamento por vendedor deve preservar o resumo regional claramente identificado.
 - Vínculo vendedor–região: **confirmado pelo usuário em 14/09/2026**, os vendedores não mudarão de região durante a campanha. Usar a região cadastrada para todas as competências, mantendo uma única meta e pontuação regional mesmo quando houver dois vendedores.
