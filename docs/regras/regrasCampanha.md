@@ -158,7 +158,7 @@ Exemplo: 12 grupos comerciais novos elegíveis integralmente atribuídos ao mesm
 | Diamante | 1.040–1.200 | Voucher de R$ 7.500,00 em PIX |
 | Polar | 1.201 ou mais | Voucher de R$ 15.000,00 em PIX |
 
-- Nome que o painel deve mostrar abaixo de 370 XP: [PREENCHER]
+- Abaixo de 370 XP, o painel usa o rótulo operacional `Sem classificação`; essa faixa não constitui um nível ou prêmio adicional.
 - Há condições adicionais para receber o prêmio: [PREENCHER]
 
 ## Validação pelo Budget Anual

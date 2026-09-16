@@ -74,7 +74,44 @@ def test_overview_consolidates_xp_by_region_and_applies_seller_caps():
     assert frame.loc["REG 01", "XP por atingimento de meta"] == pytest.approx(550)
     assert frame.loc["REG 01", "XP por adiantamento"] == pytest.approx(30)
     assert frame.loc["REG 01", "XP total"] == pytest.approx(780)
+    assert frame.loc["REG 01", "Classificação"] == "Prata"
     assert frame.loc["REG 02", "XP total"] == pytest.approx(478)
+    assert frame.loc["REG 02", "Classificação"] == "Bronze"
+
+
+@pytest.mark.parametrize(("xp", "expected"), [
+    (369, "Sem classificação"),
+    (370, "Bronze"),
+    (500, "Bronze"),
+    (501, "Prata"),
+    (800, "Prata"),
+    (801, "Ouro"),
+    (1_039, "Ouro"),
+    (1_040, "Diamante"),
+    (1_200, "Diamante"),
+    (1_201, "Polar"),
+])
+def test_campaign_classification_uses_documented_boundaries(xp, expected):
+    from app import campaign_classification
+
+    assert campaign_classification(xp) == expected
+
+
+def test_overview_orders_regions_by_total_xp_descending():
+    from app import build_xp_overview_frame
+
+    frame = build_xp_overview_frame(
+        {},
+        [
+            {"regiao": "REG A", "vendedor": "A", "xp": 10},
+            {"regiao": "REG Z", "vendedor": "Z", "xp": 20},
+        ],
+        [],
+        [],
+        [],
+    )
+
+    assert frame["Região"].tolist() == ["REG Z", "REG A"]
 
 
 def overview_runner():
@@ -134,6 +171,7 @@ def test_overview_renders_only_budget_graph_and_requested_xp_table():
     table = app.dataframe[0].value
     assert list(table.columns) == [
         "Região",
+        "Classificação",
         "XP por cliente novo",
         "XP por cliente reativado",
         "XP por expansão de mix",
@@ -141,4 +179,22 @@ def test_overview_renders_only_budget_graph_and_requested_xp_table():
         "XP por adiantamento",
         "XP total",
     ]
+    assert table["Região"].tolist() == ["REG 01", "REG 02"]
     assert table.set_index("Região").loc["REG 01", "XP total"] == pytest.approx(780)
+
+
+def test_budget_card_keeps_currency_readable_and_separates_values():
+    from app import build_budget_card_html
+
+    html = build_budget_card_html({
+        "data_referencia": "2026-09-16",
+        "realizado": Decimal("77513456"),
+        "budget": Decimal("119000000"),
+        "atingimento_pct": Decimal("65.137358"),
+    })
+
+    assert "65,1%" in html
+    assert "R$ 77.513.456" in html
+    assert "R$ 119.000.000" in html
+    assert "16/09/2026" in html
+    assert "width: 65.1374%" in html

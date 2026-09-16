@@ -2,7 +2,7 @@
 
 Painel implementado no padrão visual do Gestão Comercial, com navegação lateral e seis páginas:
 
-- **Visão geral:** gráfico do realizado elegível de 2026 contra o budget anual de R$ 119 milhões e tabela com os cinco indicadores de XP e o total por região.
+- **Visão geral:** cartão do realizado elegível de 2026 contra o budget anual de R$ 119 milhões e ranking regional, ordenado pelo XP total, com os cinco indicadores e a classificação da campanha.
 - **Venda no Quadrimestre:** realizado elegível acumulado desde setembro contra as metas regionais disponíveis, usando a meta proporcional do mês atual para calcular o atingimento e o XP por região.
 - **Clientes novos:** resumo por região e detalhamento por vendedor, com duas linhas para triangulações e o XP atribuído a cada participante.
 - **Clientes reativados:** resumo por região e detalhamento por vendedor dos retornos após 6 meses em Canais ou 12 meses em Construção.

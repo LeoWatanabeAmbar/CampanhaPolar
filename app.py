@@ -105,6 +105,64 @@ def apply_polar_style():
         div[data-testid="stMetricLabel"] p {{ color: #5C6F86; }}
         div[data-testid="stMetricValue"] {{ color: var(--polar-ink); }}
 
+        .polar-budget-card {{
+            background: linear-gradient(135deg, #F7FBFF 0%, #E8F3FC 100%);
+            border: 1px solid var(--polar-border);
+            border-left: 5px solid var(--polar-blue);
+            border-radius: 12px;
+            box-shadow: 0 4px 14px rgba(23, 35, 58, 0.07);
+            margin-bottom: 1.75rem;
+            padding: 1.25rem 1.4rem;
+        }}
+        .polar-budget-grid {{
+            align-items: end;
+            display: grid;
+            gap: 1rem 2rem;
+            grid-template-columns: minmax(150px, 0.7fr) repeat(2, minmax(190px, 1fr));
+        }}
+        .polar-budget-label {{
+            color: #5C6F86;
+            display: block;
+            font-size: 0.76rem;
+            font-weight: 750;
+            letter-spacing: 0.07em;
+            margin-bottom: 0.25rem;
+            text-transform: uppercase;
+        }}
+        .polar-budget-percentage {{
+            color: var(--polar-blue);
+            font-size: 2.2rem;
+            font-weight: 780;
+            letter-spacing: -0.04em;
+            line-height: 1;
+        }}
+        .polar-budget-value {{
+            color: var(--polar-ink);
+            font-size: 1.25rem;
+            font-weight: 720;
+            white-space: nowrap;
+        }}
+        .polar-budget-track {{
+            background: #D5E5F4;
+            border-radius: 999px;
+            height: 12px;
+            margin-top: 1.15rem;
+            overflow: hidden;
+        }}
+        .polar-budget-fill {{
+            background: linear-gradient(90deg, var(--polar-blue), #35A0F2);
+            border-radius: 999px;
+            height: 100%;
+        }}
+        .polar-budget-reference {{
+            color: #5C6F86;
+            font-size: 0.85rem;
+            margin-top: 0.65rem;
+        }}
+        @media (max-width: 760px) {{
+            .polar-budget-grid {{ grid-template-columns: 1fr; }}
+        }}
+
         .stButton > button, .stDownloadButton > button {{
             border-color: var(--polar-blue);
             border-radius: 6px;
@@ -177,6 +235,52 @@ def format_percentage_br(value: float) -> str:
     return f"{value:,.1f}%".replace(",", "_").replace(".", ",").replace("_", ".")
 
 
+def campaign_classification(xp: float) -> str:
+    """Traduz o XP acumulado para a faixa de classificação da campanha."""
+    if xp < 370:
+        return "Sem classificação"
+    if xp <= 500:
+        return "Bronze"
+    if xp <= 800:
+        return "Prata"
+    if xp <= 1_039:
+        return "Ouro"
+    if xp <= 1_200:
+        return "Diamante"
+    return "Polar"
+
+
+def build_budget_card_html(budget: dict) -> str:
+    """Monta o cartão visual do budget sem interpretar `R$` como Markdown."""
+    attainment = float(budget["atingimento_pct"])
+    bar_width = min(max(attainment, 0.0), 100.0)
+    reference = date.fromisoformat(str(budget["data_referencia"]))
+    return f"""
+        <div class="polar-budget-card">
+            <div class="polar-budget-grid">
+                <div>
+                    <span class="polar-budget-label">Atingimento</span>
+                    <span class="polar-budget-percentage">{escape(format_percentage_br(attainment))}</span>
+                </div>
+                <div>
+                    <span class="polar-budget-label">Realizado elegível</span>
+                    <span class="polar-budget-value">{escape(format_currency_br(float(budget['realizado'])))}</span>
+                </div>
+                <div>
+                    <span class="polar-budget-label">Budget anual</span>
+                    <span class="polar-budget-value">{escape(format_currency_br(float(budget['budget'])))}</span>
+                </div>
+            </div>
+            <div class="polar-budget-track" aria-label="Atingimento do budget">
+                <div class="polar-budget-fill" style="width: {bar_width:.4f}%"></div>
+            </div>
+            <div class="polar-budget-reference">
+                Realizado elegível de 2026 até {reference:%d/%m/%Y}.
+            </div>
+        </div>
+    """
+
+
 def indicator_xp_by_region(rows: list[dict], seller_cap: float | None = None) -> dict[str, float]:
     """Soma XP por região, aplicando antes o teto acumulado de cada vendedor."""
     if seller_cap is None:
@@ -242,8 +346,19 @@ def build_xp_overview_frame(
             "XP por atingimento de meta": sales_xp.get(region, 0.0),
             "XP por adiantamento": advancement_xp.get(region, 0.0),
         }
-        records.append({"Região": region, **values, "XP total": sum(values.values())})
-    return pd.DataFrame(records)
+        total_xp = sum(values.values())
+        records.append({
+            "Região": region,
+            "Classificação": campaign_classification(total_xp),
+            **values,
+            "XP total": total_xp,
+        })
+    frame = pd.DataFrame(records)
+    if frame.empty:
+        return frame
+    return frame.sort_values(
+        ["XP total", "Região"], ascending=[False, True], kind="stable"
+    ).reset_index(drop=True)
 
 
 def build_new_customers_region_summary(frame: pd.DataFrame) -> pd.DataFrame:
@@ -515,18 +630,8 @@ def render_overview(
         "Acompanhe o budget anual de vendas e o XP consolidado de cada região.",
     )
     budget = budget_repository.load()
-    budget_attainment = float(budget["atingimento_pct"])
     st.subheader("Atingimento do budget anual de vendas")
-    st.progress(
-        min(max(budget_attainment / 100, 0.0), 1.0),
-        text=(
-            f"{format_percentage_br(budget_attainment)} · "
-            f"{format_currency_br(float(budget['realizado']))} de "
-            f"{format_currency_br(float(budget['budget']))}"
-        ),
-    )
-    budget_reference = date.fromisoformat(str(budget["data_referencia"]))
-    st.caption(f"Realizado elegível de 2026 até {budget_reference:%d/%m/%Y}.")
+    st.markdown(build_budget_card_html(budget), unsafe_allow_html=True)
 
     advancement_by_month = advancement_repository.load_campaign()
     rows_by_month = sales_repository.load_through(reference)
@@ -551,7 +656,8 @@ def render_overview(
         frame,
         column_config={
             column: st.column_config.NumberColumn(column, format="%.0f XP")
-            for column in frame.columns if column != "Região"
+            for column in frame.columns
+            if column not in {"Região", "Classificação"}
         },
         hide_index=True,
         width="stretch",

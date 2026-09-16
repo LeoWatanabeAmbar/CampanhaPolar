@@ -28,7 +28,7 @@ Marque as necessárias e acrescente outras.
 
 ## Visualizações e filtros
 
-- Visão geral simplificada, **confirmada pelo usuário em 16/09/2026**: mostrar somente um gráfico de atingimento do budget anual de vendas de R$ 119 milhões e uma tabela regional com XP de clientes novos, clientes reativados, expansão de mix, atingimento de meta, adiantamento e XP total.
+- Visão geral simplificada, **confirmada pelo usuário em 16/09/2026**: mostrar um cartão visual de atingimento do budget anual de vendas de R$ 119 milhões e uma tabela regional com XP de clientes novos, clientes reativados, expansão de mix, atingimento de meta, adiantamento, XP total e classificação. Ordenar as regiões pelo XP total decrescente, com desempate alfabético.
 - Gráficos ou tabelas desejados: proposta de comparação do realizado acumulado com a meta parcial por dia útil, acompanhada de tabela por data para conferência. O formato visual definitivo permanece a definir.
 - Tabela de adiantamento atualizada em 15/09/2026: uma linha por região e 12 checks, com as três fases de setembro, outubro, novembro e dezembro lado a lado. Somente `lais.vendrasco@ambar.tech` e `leonardo.watanabe@ambar.tech` podem preencher e salvar; os demais usuários autenticados visualizam.
 - Visão de clientes novos solicitada e implementada em 15/09/2026: resumo regional com quantidade, lista de clientes e XP; abaixo, filtro de região e detalhe por vendedor. Exibe 10 XP em uma atribuição integral ou duas linhas de 5 XP quando houver dois vendedores, antes do teto individual acumulado de 100 XP.
