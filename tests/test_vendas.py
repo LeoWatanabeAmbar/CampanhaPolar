@@ -231,8 +231,7 @@ def test_page_shows_partial_goal_attainment_and_xp_by_region():
     table = app.dataframe[0].value
     assert list(table.columns) == [
         "Região", "Vendedores", "Realizado acumulado", "Meta acumulada até hoje",
-        "Atingimento acumulado", "XP da região", "Metas publicadas",
-        "Meta do mês atual", "Meta diária atual",
+        "Atingimento acumulado", "XP da região", "Meta diária atual",
     ]
     assert list(table["XP da região"]) == [500, 350]
 
@@ -254,7 +253,6 @@ def test_page_in_october_labels_and_displays_the_accumulated_quadrimester():
     assert app.metric[0].label == "Metas publicadas até outubro"
     assert app.metric[1].label == "Meta acumulada até hoje"
     table = app.dataframe[0].value.set_index("Região")
-    assert table.loc["REG 01", "Metas publicadas"] == pytest.approx(420000)
     assert table.loc["REG 01", "Meta acumulada até hoje"] == pytest.approx(310000)
     assert table.loc["REG 01", "Realizado acumulado"] == pytest.approx(310000)
     assert table.loc["REG 01", "XP da região"] == 500

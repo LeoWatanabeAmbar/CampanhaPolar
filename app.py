@@ -628,13 +628,11 @@ def render_quadrimester_sales(repository: SalesRepository, reference: date | Non
         "meta_acumulada_ate_data": "Meta acumulada até hoje",
         "atingimento_acumulado_pct": "Atingimento acumulado",
         "xp": "XP da região",
-        "metas_publicadas": "Metas publicadas",
-        "meta_mes_atual": "Meta do mês atual",
         "meta_diaria_mes_atual": "Meta diária atual",
     })
     numeric_columns = [
         "Realizado acumulado", "Meta acumulada até hoje", "Atingimento acumulado",
-        "Metas publicadas", "Meta do mês atual", "Meta diária atual",
+        "Meta diária atual",
     ]
     for column in numeric_columns:
         display[column] = display[column].map(
@@ -643,8 +641,7 @@ def render_quadrimester_sales(repository: SalesRepository, reference: date | Non
     st.dataframe(
         display[[
             "Região", "Vendedores", "Realizado acumulado", "Meta acumulada até hoje",
-            "Atingimento acumulado", "XP da região", "Metas publicadas",
-            "Meta do mês atual", "Meta diária atual",
+            "Atingimento acumulado", "XP da região", "Meta diária atual",
         ]],
         column_config={
             "Realizado acumulado": st.column_config.NumberColumn(
@@ -657,12 +654,6 @@ def render_quadrimester_sales(repository: SalesRepository, reference: date | Non
                 "Atingimento acumulado", format="%.1f%%"
             ),
             "XP da região": st.column_config.NumberColumn("XP da região", format="%d XP"),
-            "Metas publicadas": st.column_config.NumberColumn(
-                "Metas publicadas", format="R$ %.2f"
-            ),
-            "Meta do mês atual": st.column_config.NumberColumn(
-                "Meta do mês atual", format="R$ %.2f"
-            ),
             "Meta diária atual": st.column_config.NumberColumn(
                 "Meta diária atual", format="R$ %.2f"
             ),
