@@ -555,7 +555,7 @@ def render_quadrimester_sales(repository: SalesRepository, reference: date | Non
     else:
         period_note = f"Os meses anteriores entram completos; {current_month_note.lower()}"
     st.caption(f"Referência: {reference:%d/%m/%Y}. {period_note}")
-    metric_goal, metric_partial, metric_realized, metric_attainment = st.columns(4)
+    metric_goal, metric_partial, metric_realized, metric_attainment, metric_days = st.columns(5)
     metric_goal.metric(
         f"Metas publicadas até {MONTHS[current_month.month].lower()}",
         format_currency_br(float(total_published_goals)),
@@ -566,6 +566,7 @@ def render_quadrimester_sales(repository: SalesRepository, reference: date | Non
         "Atingimento acumulado",
         format_percentage_br(float(total_attainment)) if total_attainment is not None else "Pendente",
     )
+    metric_days.metric("Dias úteis", f"{elapsed} de {total_days}")
 
     st.subheader("Venda x meta por região")
     st.caption(
@@ -574,9 +575,6 @@ def render_quadrimester_sales(repository: SalesRepository, reference: date | Non
         "mostra quem compôs suas vendas."
     )
     display = frame.copy()
-    display["Dias úteis"] = display.apply(
-        lambda row: f"{row['dias_uteis_decorridos']} de {row['dias_uteis_mes']}", axis=1
-    )
     display = display.rename(columns={
         "regiao": "Região",
         "vendedores": "Vendedores",
@@ -587,13 +585,10 @@ def render_quadrimester_sales(repository: SalesRepository, reference: date | Non
         "metas_publicadas": "Metas publicadas",
         "meta_mes_atual": "Meta do mês atual",
         "meta_diaria_mes_atual": "Meta diária atual",
-        "saldo_metas_publicadas": "Saldo das metas publicadas",
-        "necessario_dia_util_restante": "Necessário/dia restante",
     })
     numeric_columns = [
         "Realizado acumulado", "Meta acumulada até hoje", "Atingimento acumulado",
         "Metas publicadas", "Meta do mês atual", "Meta diária atual",
-        "Saldo das metas publicadas", "Necessário/dia restante",
     ]
     for column in numeric_columns:
         display[column] = display[column].map(
@@ -603,8 +598,7 @@ def render_quadrimester_sales(repository: SalesRepository, reference: date | Non
         display[[
             "Região", "Vendedores", "Realizado acumulado", "Meta acumulada até hoje",
             "Atingimento acumulado", "XP da região", "Metas publicadas",
-            "Meta do mês atual", "Meta diária atual", "Dias úteis",
-            "Saldo das metas publicadas", "Necessário/dia restante",
+            "Meta do mês atual", "Meta diária atual",
         ]],
         column_config={
             "Realizado acumulado": st.column_config.NumberColumn(
@@ -625,12 +619,6 @@ def render_quadrimester_sales(repository: SalesRepository, reference: date | Non
             ),
             "Meta diária atual": st.column_config.NumberColumn(
                 "Meta diária atual", format="R$ %.2f"
-            ),
-            "Saldo das metas publicadas": st.column_config.NumberColumn(
-                "Saldo das metas publicadas", format="R$ %.2f"
-            ),
-            "Necessário/dia restante": st.column_config.NumberColumn(
-                "Necessário/dia restante", format="R$ %.2f"
             ),
         },
         hide_index=True,

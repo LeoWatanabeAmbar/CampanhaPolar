@@ -58,7 +58,7 @@ Descreva as telas desejadas em linguagem simples. Exemplos possíveis: visão ge
 | Tela desejada | O que deve mostrar | Quem pode acessar |
 | --- | --- | --- |
 | Visão geral | Metas publicadas, regiões participantes, cobertura das fases e XP regional de adiantamento em toda a campanha | Usuários autenticados consultam |
-| Venda no Quadrimestre | Meta e realizado acumulados desde setembro, com o mês atual proporcional aos dias úteis, atingimento exato, XP, saldo e necessidade diária por região | Usuários autenticados consultam |
+| Venda no Quadrimestre | Meta e realizado acumulados desde setembro, com o mês atual proporcional aos dias úteis, atingimento exato, XP e dias úteis em indicador no topo | Usuários autenticados consultam |
 | Clientes novos | Resumo de quantidade, lista e XP por região; detalhe de data, grupo, pedidos, vendedor, região, segmento, atribuição e XP | Usuários autenticados consultam |
 | Clientes reativados | Resumo de quantidade, lista e XP por região; detalhe do retorno por vendedor, com duas linhas para triangulações | Usuários autenticados consultam |
 | Mix de produtos | Resumo das expansões confirmadas por região; detalhe de família, produtos, mínimo, resultado e XP por vendedor | Usuários autenticados consultam |

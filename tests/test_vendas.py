@@ -220,21 +220,21 @@ def test_page_shows_partial_goal_attainment_and_xp_by_region():
     app.run(timeout=15)
 
     assert not app.exception
-    assert len(app.metric) == 4
+    assert len(app.metric) == 5
     assert app.metric[0].label == "Metas publicadas até setembro"
     assert app.metric[1].label == "Meta acumulada até hoje"
     assert app.metric[2].label == "Realizado acumulado"
     assert app.metric[3].label == "Atingimento acumulado"
+    assert app.metric[4].label == "Dias úteis"
+    assert app.metric[4].value == "10 de 21"
     assert len(app.dataframe) == 1
     table = app.dataframe[0].value
     assert list(table.columns) == [
         "Região", "Vendedores", "Realizado acumulado", "Meta acumulada até hoje",
         "Atingimento acumulado", "XP da região", "Metas publicadas",
-        "Meta do mês atual", "Meta diária atual", "Dias úteis",
-        "Saldo das metas publicadas", "Necessário/dia restante",
+        "Meta do mês atual", "Meta diária atual",
     ]
     assert list(table["XP da região"]) == [500, 350]
-    assert list(table["Dias úteis"]) == ["10 de 21", "10 de 21"]
 
 
 def test_page_in_october_labels_and_displays_the_accumulated_quadrimester():
