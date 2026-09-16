@@ -29,6 +29,7 @@ Marque as necessárias e acrescente outras.
 ## Visualizações e filtros
 
 - Visão geral simplificada, **confirmada pelo usuário em 16/09/2026**: mostrar um cartão visual de atingimento do budget anual de vendas de R$ 119 milhões e uma tabela regional com XP de clientes novos, clientes reativados, expansão de mix, atingimento de meta, adiantamento, XP total e classificação. Ordenar as regiões pelo XP total decrescente, com desempate alfabético.
+- Budget anual ajustado em 16/09/2026: a inadimplência não reduz o realizado anual. O indicador usa os pedidos comerciais válidos de 2026 pelo valor bruto, desconta as devoluções e preserva as exclusões de bonificações, remessas, transferências e itens inválidos para métricas.
 - Análise individual solicitada em 16/09/2026: selecionar uma região e mostrar XP total, classificação e a composição pelos cinco indicadores em barras horizontais, sem exibir ranking nessa tela. Disponibilizar, na mesma página, o detalhamento dos clientes novos, clientes reativados, compras de mix, venda contra meta e checks mensais de adiantamento da região.
 - Gráficos ou tabelas desejados: proposta de comparação do realizado acumulado com a meta parcial por dia útil, acompanhada de tabela por data para conferência. O formato visual definitivo permanece a definir.
 - Tabela de adiantamento atualizada em 16/09/2026: uma linha por região e 12 checks, com as três fases de setembro, outubro, novembro e dezembro lado a lado. As cinco contas editoras autorizadas podem preencher e salvar; os demais usuários autenticados visualizam.

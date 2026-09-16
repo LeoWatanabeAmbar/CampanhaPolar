@@ -43,8 +43,21 @@ def test_sql_applies_confirmed_annual_sales_rules():
     assert "date '2026-01-01'" in sql
     assert "f.is_item_valido_metricas is true" in sql
     assert "f.is_venda_comercial is true" in sql
-    assert "vw_clientes_inadimplentes" in sql
+    assert "vw_clientes_inadimplentes" not in sql
+    assert "vendas_bloqueadas_faturadas" not in sql
+    assert "sum(coalesce(f.valor_bruto_total, 0))" in sql
     assert "fct_faturamento_item" in sql
     assert "fct_nota_devolucao" in sql
     assert "valor_devolucao_alocado" in sql
     assert "grant execute on function public.campanha_polar_carregar_budget_anual()" in sql
+
+
+def test_budget_migration_removes_delinquency_filter():
+    sql = Path(
+        "sql/migrations/20260916_budget_sem_inadimplencia.sql"
+    ).read_text(encoding="utf-8").lower()
+
+    assert "create or replace function public.campanha_polar_carregar_budget_anual()" in sql
+    assert "vw_clientes_inadimplentes" not in sql
+    assert "vendas_bloqueadas_faturadas" not in sql
+    assert "sum(coalesce(f.valor_bruto_total, 0))" in sql
