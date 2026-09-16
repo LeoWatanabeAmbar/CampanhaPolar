@@ -743,10 +743,10 @@ def render_login(authenticator: SupabaseAuthenticator):
 def render_sidebar(
     identity: Identity,
     authenticator: SupabaseAuthenticator,
-    reference: date | None = None,
+    updated_at: datetime | None = None,
 ):
     """Renderiza navegação e conta conectada."""
-    reference = reference or datetime.now(ZoneInfo("America/Sao_Paulo")).date()
+    updated_at = updated_at or datetime.now(ZoneInfo("America/Sao_Paulo"))
     with st.sidebar:
         st.caption("NAVEGAÇÃO")
         page = st.radio(
@@ -769,7 +769,7 @@ def render_sidebar(
         st.caption(access)
         st.divider()
         st.caption("ÚLTIMA ATUALIZAÇÃO DO PAINEL")
-        st.write(f"{reference:%d/%m/%Y}")
+        st.write(f"{updated_at:%d/%m/%Y às %H:%M}")
         if st.button("Sair", key="polar_logout", width="stretch"):
             saved_session = st.session_state.get("supabase_auth_session", {})
             try:
@@ -1521,8 +1521,9 @@ def main():
 
     if LOGO_PATH.is_file():
         st.logo(str(LOGO_PATH), size="large")
-    panel_reference = datetime.now(ZoneInfo("America/Sao_Paulo")).date()
-    page = render_sidebar(identity, authenticator, panel_reference)
+    panel_updated_at = datetime.now(ZoneInfo("America/Sao_Paulo"))
+    panel_reference = panel_updated_at.date()
+    page = render_sidebar(identity, authenticator, panel_updated_at)
     try:
         repository = Repository(data_client)
         if page == "Visão geral":
