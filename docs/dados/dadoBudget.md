@@ -4,7 +4,7 @@
 
 ## Origem e abrangência
 
-- Sistema e consulta do realizado: `comercial_marts.fct_pedido_item`, complementada pelo faturamento para vincular notas e pelas devoluções. A inadimplência não reduz o Budget anual.
+- Sistema e consulta do realizado: `comercial_marts.fct_pedido_item` para as vendas e `comercial_marts.fct_nota_devolucao` para as devoluções. A inadimplência não reduz o Budget anual.
 - Caminho de acesso: função autenticada `public.campanha_polar_carregar_budget_anual()`, criada por `sql/budget_anual.sql`.
 - Meta anual: constante de R$ 119.000.000 no painel; não depende das metas mensais regionais.
 - Abrangência implementada: vendas comerciais elegíveis da empresa em 2026, sem restringir às regiões participantes da campanha.
@@ -22,13 +22,13 @@
 
 - A fonte fornece o realizado; a meta anual fica configurada no aplicativo.
 - Denominador: R$ 119.000.000.
-- Numerador implementado: valor bruto dos pedidos comerciais válidos implantados em 2026, sem restrição por inadimplência e líquido das devoluções vinculadas. Bonificações, remessas, transferências e itens inválidos para métricas permanecem excluídos.
+- Numerador implementado: valor bruto dos pedidos comerciais válidos implantados em 2026, sem restrição por inadimplência, menos todas as notas devolvidas em 2026 até a data de referência. A devolução é abatida pela data em que ocorreu, mesmo quando sua nota original ou seu pedido pertencem a outro ano e sem exigir vínculo com um pedido de 2026. Bonificações, remessas, transferências e itens inválidos para métricas permanecem excluídos das vendas.
 - Fórmula: `100 * realizado_2026 / 119000000`.
 - Escala exibida: percentual em que `50` significa 50%.
 - Durante a campanha: mostrar o realizado atual, sem projeção.
 - Quem valida o percentual usado nos prêmios: [PREENCHER]
 - Se a consulta estiver indisponível ou desatualizada, mostrar o erro da Data API e não apresentar um percentual estimado.
-- Instalações existentes devem executar [20260916_budget_sem_inadimplencia.sql](../../sql/migrations/20260916_budget_sem_inadimplencia.sql) para aplicar a regra sem alterar outras funções do painel.
+- Instalações existentes devem executar [20260916_budget_todas_devolucoes_2026.sql](../../sql/migrations/20260916_budget_todas_devolucoes_2026.sql) para aplicar a regra sem alterar outras funções do painel.
 
 ## Exemplo para conferência
 

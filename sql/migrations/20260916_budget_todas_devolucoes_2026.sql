@@ -1,8 +1,7 @@
--- Execute no SQL Editor do Supabase para habilitar o gráfico do Budget Anual.
--- O realizado soma as vendas elegíveis de 2026 e desconta todas as devoluções ocorridas em 2026.
+﻿-- Atualiza o Budget anual para descontar todas as notas devolvidas em 2026.
+-- A nota original pode pertencer a qualquer ano e nao precisa estar vinculada a um pedido de 2026.
+-- Execute uma vez no SQL Editor do Supabase em instalacoes existentes.
 begin;
-
-drop function if exists public.campanha_polar_carregar_budget_anual();
 
 create or replace function public.campanha_polar_carregar_budget_anual()
 returns table (
@@ -91,3 +90,5 @@ grant execute on function public.campanha_polar_carregar_budget_anual()
 commit;
 
 notify pgrst, 'reload schema';
+
+

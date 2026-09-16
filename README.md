@@ -2,7 +2,7 @@
 
 Painel implementado no padrão visual do Gestão Comercial, com navegação lateral e sete páginas:
 
-- **Visão geral:** cartão do realizado elegível de 2026 contra o budget anual de R$ 119 milhões e ranking regional, ordenado pelo XP total, com os cinco indicadores e a classificação da campanha.
+- **Visão geral:** cartão das vendas elegíveis implantadas em 2026, líquidas de todas as notas devolvidas em 2026, contra o budget anual de R$ 119 milhões; ranking regional ordenado pelo XP total, com os cinco indicadores e a classificação da campanha.
 - **Análise individual:** filtro de região, XP total, classificação, composição dos cinco indicadores em barras horizontais e tabelas com todos os eventos que formam o resultado.
 - **Venda no Quadrimestre:** realizado elegível acumulado desde setembro contra as metas regionais disponíveis, usando a meta proporcional do mês atual para calcular o atingimento e o XP por região.
 - **Clientes novos:** resumo por região e detalhamento por vendedor, com duas linhas para triangulações e o XP atribuído a cada participante.
@@ -19,7 +19,7 @@ O login usa e-mail e senha do Supabase Authentication. Qualquer conta válida ca
 ## Configuração e execução
 
 1. Instale as dependências: `python -m pip install -r requirements.txt`.
-2. Execute [sql/adiantamento_meta.sql](sql/adiantamento_meta.sql), [sql/budget_anual.sql](sql/budget_anual.sql), [sql/vendas_quadrimestre.sql](sql/vendas_quadrimestre.sql), [sql/clientes_novos.sql](sql/clientes_novos.sql), [sql/clientes_reativados.sql](sql/clientes_reativados.sql) e [sql/mix_produtos.sql](sql/mix_produtos.sql) no SQL Editor do Supabase. Eles habilitam o adiantamento e as consultas autenticadas do painel. Em uma instalação existente, execute [20260916_adicionar_editores_adiantamento.sql](sql/migrations/20260916_adicionar_editores_adiantamento.sql) para liberar as cinco contas editoras e [20260916_budget_sem_inadimplencia.sql](sql/migrations/20260916_budget_sem_inadimplencia.sql) para atualizar o cálculo do Budget anual.
+2. Execute [sql/adiantamento_meta.sql](sql/adiantamento_meta.sql), [sql/budget_anual.sql](sql/budget_anual.sql), [sql/vendas_quadrimestre.sql](sql/vendas_quadrimestre.sql), [sql/clientes_novos.sql](sql/clientes_novos.sql), [sql/clientes_reativados.sql](sql/clientes_reativados.sql) e [sql/mix_produtos.sql](sql/mix_produtos.sql) no SQL Editor do Supabase. Eles habilitam o adiantamento e as consultas autenticadas do painel. Em uma instalação existente, execute [20260916_adicionar_editores_adiantamento.sql](sql/migrations/20260916_adicionar_editores_adiantamento.sql) para liberar as cinco contas editoras e [20260916_budget_todas_devolucoes_2026.sql](sql/migrations/20260916_budget_todas_devolucoes_2026.sql) para atualizar o cálculo do Budget anual.
 3. Copie [.streamlit/secrets.example.toml](.streamlit/secrets.example.toml) para `.streamlit/secrets.toml` e configure somente `SUPABASE_URL` e `SUPABASE_PUBLISHABLE_KEY`. Nunca use `service_role` ou `sb_secret_...`.
 4. Inicie: `python -m streamlit run app.py`.
 

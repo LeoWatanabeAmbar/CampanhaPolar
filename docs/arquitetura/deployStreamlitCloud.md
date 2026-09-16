@@ -45,6 +45,8 @@ O aplicativo usa a API do Supabase Authentication para validar `auth.users`; nã
 
 Antes do primeiro uso, execute [adiantamento_meta.sql](../../sql/adiantamento_meta.sql), [budget_anual.sql](../../sql/budget_anual.sql), [vendas_quadrimestre.sql](../../sql/vendas_quadrimestre.sql), [clientes_novos.sql](../../sql/clientes_novos.sql), [clientes_reativados.sql](../../sql/clientes_reativados.sql) e [mix_produtos.sql](../../sql/mix_produtos.sql) no SQL Editor do Supabase. Em um projeto que já recebeu a versão anterior do adiantamento, execute também [20260915_usar_data_api.sql](../../sql/migrations/20260915_usar_data_api.sql). Os scripts:
 
+Em uma instalação existente, execute [20260916_budget_todas_devolucoes_2026.sql](../../sql/migrations/20260916_budget_todas_devolucoes_2026.sql) para o Budget anual descontar todas as notas devolvidas em 2026, independentemente do ano ou do vínculo do pedido original.
+
 - mantém as tabelas de adiantamento e histórico sem acesso direto pela API;
 - cria uma função de leitura para usuários autenticados;
 - cria uma função de gravação que confere no JWT se a conta é Laís ou Leonardo;

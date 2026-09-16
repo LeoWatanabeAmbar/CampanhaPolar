@@ -172,6 +172,6 @@ Exemplo: 12 grupos comerciais novos elegíveis integralmente atribuídos ao mesm
 | Igual ou superior a 95% | Prêmio correspondente ao nível atingido |
 
 - Cálculo implementado em 16/09/2026: `100 * venda bruta elegível acumulada de 2026 / 119000000`, preservando a precisão no cálculo e arredondando somente a exibição.
-- Regra ajustada em 16/09/2026: a inadimplência não reduz o realizado do Budget anual. Somar o valor bruto dos pedidos comerciais válidos e abater as devoluções; manter as regras financeiras apenas nos indicadores da campanha que dependem da elegibilidade do pedido.
+- Regra ajustada em 16/09/2026: a inadimplência não reduz o realizado do Budget anual. Somar o valor bruto dos pedidos comerciais válidos implantados em 2026 e abater todas as notas devolvidas em 2026, inclusive quando a venda original pertence a outro ano ou não é vinculada a um pedido de 2026. Manter as regras financeiras apenas nos indicadores da campanha que dependem da elegibilidade do pedido.
 - Durante a campanha, usar o realizado anual até a data, sem projeção.
 - Responsável por confirmar a regra final: [PREENCHER]

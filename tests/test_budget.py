@@ -46,9 +46,13 @@ def test_sql_applies_confirmed_annual_sales_rules():
     assert "vw_clientes_inadimplentes" not in sql
     assert "vendas_bloqueadas_faturadas" not in sql
     assert "sum(coalesce(f.valor_bruto_total, 0))" in sql
-    assert "fct_faturamento_item" in sql
+    assert "fct_faturamento_item" not in sql
     assert "fct_nota_devolucao" in sql
-    assert "valor_devolucao_alocado" in sql
+    assert "sum(d.valor_devolucao_alocado)" in sql
+    assert "d.data_devolucao >= date '2026-01-01'" in sql
+    assert "d.data_devolucao <= v_hoje" in sql
+    assert "nota_fiscal_original_id" not in sql
+    assert "(v.valor_bruto - d.valor_devolvido)::numeric" in sql
     assert "grant execute on function public.campanha_polar_carregar_budget_anual()" in sql
 
 
@@ -61,3 +65,17 @@ def test_budget_migration_removes_delinquency_filter():
     assert "vw_clientes_inadimplentes" not in sql
     assert "vendas_bloqueadas_faturadas" not in sql
     assert "sum(coalesce(f.valor_bruto_total, 0))" in sql
+
+
+def test_budget_migration_subtracts_every_return_from_2026():
+    sql = Path(
+        "sql/migrations/20260916_budget_todas_devolucoes_2026.sql"
+    ).read_text(encoding="utf-8-sig").lower()
+
+    assert "create or replace function public.campanha_polar_carregar_budget_anual()" in sql
+    assert "sum(d.valor_devolucao_alocado)" in sql
+    assert "d.data_devolucao >= date '2026-01-01'" in sql
+    assert "d.data_devolucao <= v_hoje" in sql
+    assert "nota_fiscal_original_id" not in sql
+    assert "fct_faturamento_item" not in sql
+    assert "(v.valor_bruto - d.valor_devolvido)::numeric" in sql
