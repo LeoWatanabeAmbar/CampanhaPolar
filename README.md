@@ -10,6 +10,8 @@ Painel implementado no padrão visual do Gestão Comercial, com navegação late
 - **Mix de produtos:** resumo regional e detalhamento por vendedor da primeira compra das famílias, mínimos, exclusões, pendências e XP.
 - **Adiantamento de meta:** uma linha por região e 12 checks, com as três fases de setembro, outubro, novembro e dezembro na mesma tabela.
 
+A barra lateral mostra a data da última atualização do painel no fuso de São Paulo. Essa mesma data é usada como referência nos cálculos de budget, vendas e XP regional.
+
 O ícone azul da Polar em [assets/icone_polar.png](assets/icone_polar.png) é usado como favicon da aba do navegador. O logotipo horizontal permanece na interface do painel.
 
 O login usa e-mail e senha do Supabase Authentication. Qualquer conta válida cadastrada em `auth.users` pode consultar o painel. As contas `lais.vendrasco@ambar.tech`, `leonardo.watanabe@ambar.tech`, `jorge.castro@ambar.tech`, `anyelle.santos@ambar.tech` e `luis.oliveira@ambar.tech` podem preencher e salvar. A sessão é revalidada no Supabase e o mesmo JWT acessa funções restritas da Data API.

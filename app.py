@@ -741,8 +741,13 @@ def render_login(authenticator: SupabaseAuthenticator):
     st.caption("O acesso é restrito aos usuários cadastrados no Supabase Authentication.")
 
 
-def render_sidebar(identity: Identity, authenticator: SupabaseAuthenticator):
+def render_sidebar(
+    identity: Identity,
+    authenticator: SupabaseAuthenticator,
+    reference: date | None = None,
+):
     """Renderiza navegação e conta conectada."""
+    reference = reference or datetime.now(ZoneInfo("America/Sao_Paulo")).date()
     with st.sidebar:
         st.caption("NAVEGAÇÃO")
         page = st.radio(
@@ -763,6 +768,9 @@ def render_sidebar(identity: Identity, authenticator: SupabaseAuthenticator):
         st.write(identity.email)
         access = "Pode editar o adiantamento" if identity.can_edit else "Acesso para consulta"
         st.caption(access)
+        st.divider()
+        st.caption("ÚLTIMA ATUALIZAÇÃO DO PAINEL")
+        st.write(f"{reference:%d/%m/%Y}")
         if st.button("Sair", key="polar_logout", width="stretch"):
             saved_session = st.session_state.get("supabase_auth_session", {})
             try:
@@ -1514,7 +1522,8 @@ def main():
         render_login(authenticator)
         st.stop()
 
-    page = render_sidebar(identity, authenticator)
+    panel_reference = datetime.now(ZoneInfo("America/Sao_Paulo")).date()
+    page = render_sidebar(identity, authenticator, panel_reference)
     try:
         repository = Repository(data_client)
         if page == "Visão geral":
@@ -1525,6 +1534,7 @@ def main():
                 ProductMixRepository(data_client),
                 SalesRepository(data_client),
                 BudgetRepository(data_client),
+                panel_reference,
             )
         elif page == "Análise individual":
             render_individual_analysis(
@@ -1533,9 +1543,10 @@ def main():
                 ReactivatedCustomersRepository(data_client),
                 ProductMixRepository(data_client),
                 SalesRepository(data_client),
+                panel_reference,
             )
         elif page == "Venda no Quadrimestre":
-            render_quadrimester_sales(SalesRepository(data_client))
+            render_quadrimester_sales(SalesRepository(data_client), panel_reference)
         elif page == "Clientes novos":
             render_new_customers(NewCustomersRepository(data_client))
         elif page == "Clientes reativados":

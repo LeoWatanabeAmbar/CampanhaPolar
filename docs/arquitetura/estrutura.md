@@ -69,7 +69,7 @@ Descreva as telas desejadas em linguagem simples. Exemplos possíveis: visão ge
 
 - Logo e imagens disponíveis na pasta assets: `assets/logo_polar_horizontal.png`, copiado da referência local do Gestão Comercial.
 - Cores e referências visuais: **confirmado pelo usuário em 14/09/2026**, seguir o padrão do Gestão Comercial: azul Polar `#0072D6`, azul escuro `#005DAD`, fundo branco, cartões com borda azul, cabeçalhos de tabela azuis, texto principal `#17233A` e fundo secundário `#F4F8FC`.
-- Nome exibido: `Campanha Polar`; navegação com visão geral, análise individual, Venda no Quadrimestre, novos, reativados, mix e adiantamento.
+- Nome exibido: `Campanha Polar`; navegação com visão geral, análise individual, Venda no Quadrimestre, novos, reativados, mix e adiantamento. A barra lateral exibe a data da última atualização do painel no fuso de São Paulo, compartilhada como referência pelas telas de budget e vendas.
 
 ## Operação e manutenção
 

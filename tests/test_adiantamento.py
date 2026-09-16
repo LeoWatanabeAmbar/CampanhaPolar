@@ -278,6 +278,32 @@ def ui_runner():
     )
 
 
+def sidebar_runner():
+    from datetime import date
+
+    import streamlit as st
+    from app import render_sidebar
+
+    render_sidebar(
+        st.session_state["actor"],
+        st.session_state["authenticator"],
+        date(2026, 9, 16),
+    )
+
+
+def test_sidebar_shows_panel_update_date():
+    app = AppTest.from_function(sidebar_runner)
+    app.session_state["actor"] = EDITOR
+    app.session_state["authenticator"] = SimpleNamespace(sign_out=lambda session: None)
+    app.run(timeout=15)
+
+    assert not app.exception
+    assert "ÚLTIMA ATUALIZAÇÃO DO PAINEL" in [
+        caption.value for caption in app.sidebar.caption
+    ]
+    assert "16/09/2026" in [block.value for block in app.sidebar.markdown]
+
+
 def make_ui(repository, actor):
     app = AppTest.from_function(ui_runner)
     app.session_state["repo"] = repository
