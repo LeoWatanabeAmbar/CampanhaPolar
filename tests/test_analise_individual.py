@@ -1,5 +1,6 @@
 from datetime import date
 from decimal import Decimal
+import json
 from types import SimpleNamespace
 
 import pytest
@@ -151,17 +152,19 @@ def test_individual_analysis_shows_total_breakdown_and_region_details():
     assert [metric.label for metric in app.metric] == [
         "XP total",
         "Classificação",
-        "Posição no ranking",
         "Clientes novos",
         "Clientes reativados",
         "Expansão de mix",
         "Atingimento de meta",
         "Adiantamento",
     ]
-    assert [metric.value for metric in app.metric[:3]] == ["598 XP", "Prata", "1º de 2"]
-    assert [metric.value for metric in app.metric[3:]] == [
+    assert [metric.value for metric in app.metric[:2]] == ["598 XP", "Prata"]
+    assert [metric.value for metric in app.metric[2:]] == [
         "10 XP", "8 XP", "10 XP", "550 XP", "20 XP",
     ]
+    chart_spec = json.loads(app.get("vega_lite_chart")[0].proto.spec)
+    assert chart_spec["encoding"]["x"]["field"] == "XP"
+    assert chart_spec["encoding"]["y"]["field"] == "Indicador"
     assert [tab.label for tab in app.tabs] == [
         "Clientes novos",
         "Clientes reativados",
@@ -194,10 +197,10 @@ def test_individual_analysis_updates_all_totals_when_region_changes():
     app.selectbox[0].set_value("REG B").run(timeout=15)
 
     assert not app.exception
-    assert [metric.value for metric in app.metric[:3]] == [
-        "10 XP", "Sem classificação", "2º de 2",
+    assert [metric.value for metric in app.metric[:2]] == [
+        "10 XP", "Sem classificação",
     ]
-    assert [metric.value for metric in app.metric[3:]] == [
+    assert [metric.value for metric in app.metric[2:]] == [
         "10 XP", "0 XP", "0 XP", "0 XP", "0 XP",
     ]
     assert len(app.dataframe) == 2

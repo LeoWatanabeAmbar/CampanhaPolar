@@ -58,7 +58,7 @@ Descreva as telas desejadas em linguagem simples. Exemplos possíveis: visão ge
 | Tela desejada | O que deve mostrar | Quem pode acessar |
 | --- | --- | --- |
 | Visão geral | Cartão do realizado elegível de 2026 contra o budget anual de R$ 119 milhões; ranking decrescente dos cinco indicadores, total e classificação por região | Usuários autenticados consultam |
-| Análise individual | Filtro regional, XP total, classificação, posição no ranking, composição e detalhes de clientes novos, reativados, mix, venda e adiantamento | Usuários autenticados consultam |
+| Análise individual | Filtro regional, XP total, classificação, composição em barras horizontais e detalhes de clientes novos, reativados, mix, venda e adiantamento | Usuários autenticados consultam |
 | Venda no Quadrimestre | Meta e realizado acumulados desde setembro, com o mês atual proporcional aos dias úteis, atingimento exato, XP e dias úteis em indicador no topo | Usuários autenticados consultam |
 | Clientes novos | Resumo de quantidade, lista e XP por região; detalhe de data, grupo, pedidos, vendedor, região, segmento, atribuição e XP | Usuários autenticados consultam |
 | Clientes reativados | Resumo de quantidade, lista e XP por região; detalhe do retorno por vendedor, com duas linhas para triangulações | Usuários autenticados consultam |

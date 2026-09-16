@@ -865,13 +865,11 @@ def render_individual_analysis(
         overview["Região"].tolist(),
         key="individual_analysis_region",
     )
-    position = overview.index[overview["Região"] == selected_region][0] + 1
     regional = overview[overview["Região"] == selected_region].iloc[0]
 
-    total_column, classification_column, position_column = st.columns(3)
+    total_column, classification_column = st.columns(2)
     total_column.metric("XP total", f"{float(regional['XP total']):g} XP")
     classification_column.metric("Classificação", regional["Classificação"])
-    position_column.metric("Posição no ranking", f"{position}º de {len(overview)}")
 
     components = [
         ("Clientes novos", "XP por cliente novo"),
@@ -890,6 +888,8 @@ def render_individual_analysis(
     st.bar_chart(
         pd.DataFrame(chart_records).set_index("Indicador"),
         color=POLAR_BLUE,
+        horizontal=True,
+        sort=False,
         height=280,
     )
     st.caption(
