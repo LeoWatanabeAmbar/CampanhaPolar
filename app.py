@@ -361,6 +361,165 @@ def build_xp_overview_frame(
     ).reset_index(drop=True)
 
 
+def build_individual_new_customers_frame(rows: list[dict], region: str) -> pd.DataFrame:
+    """Prepara os eventos de clientes novos da região selecionada."""
+    columns = [
+        "Data", "Grupo comercial", "Pedido de venda", "Vendedores", "Região",
+        "Segmento", "Atribuição", "XP",
+    ]
+    frame = pd.DataFrame([
+        row for row in rows if str(row.get("regiao") or "").strip() == region
+    ])
+    if frame.empty:
+        return pd.DataFrame(columns=columns)
+    frame["data_primeira_compra"] = pd.to_datetime(
+        frame["data_primeira_compra"], errors="coerce"
+    ).dt.strftime("%d/%m/%Y")
+    frame["pedidos"] = frame["pedidos"].map(format_sales_orders)
+    frame = frame.rename(columns={
+        "nome_grupo_comercial": "Grupo comercial",
+        "data_primeira_compra": "Data",
+        "pedidos": "Pedido de venda",
+        "vendedor": "Vendedores",
+        "regiao": "Região",
+        "segmento": "Segmento",
+        "situacao_atribuicao": "Atribuição",
+        "xp": "XP",
+    })
+    return frame[columns]
+
+
+def build_individual_reactivated_customers_frame(
+    rows: list[dict], region: str,
+) -> pd.DataFrame:
+    """Prepara os eventos de clientes reativados da região selecionada."""
+    columns = [
+        "Data", "Última compra", "Prazo", "Grupo comercial", "Pedido de venda",
+        "Vendedores", "Região", "Segmento", "Atribuição", "XP",
+    ]
+    frame = pd.DataFrame([
+        row for row in rows if str(row.get("regiao") or "").strip() == region
+    ])
+    if frame.empty:
+        return pd.DataFrame(columns=columns)
+    frame["data_reativacao"] = pd.to_datetime(
+        frame["data_reativacao"], errors="coerce"
+    ).dt.strftime("%d/%m/%Y")
+    frame["data_ultima_compra"] = pd.to_datetime(
+        frame["data_ultima_compra"], errors="coerce"
+    ).dt.strftime("%d/%m/%Y")
+    frame["prazo_meses"] = frame["prazo_meses"].map(lambda value: f"{value} meses")
+    frame["pedidos"] = frame["pedidos"].map(format_sales_orders)
+    frame = frame.rename(columns={
+        "nome_grupo_comercial": "Grupo comercial",
+        "data_reativacao": "Data",
+        "data_ultima_compra": "Última compra",
+        "prazo_meses": "Prazo",
+        "pedidos": "Pedido de venda",
+        "vendedor": "Vendedores",
+        "regiao": "Região",
+        "segmento": "Segmento",
+        "situacao_atribuicao": "Atribuição",
+        "xp": "XP",
+    })
+    return frame[columns]
+
+
+def build_individual_product_mix_frame(rows: list[dict], region: str) -> pd.DataFrame:
+    """Prepara todas as compras de mix da região, elegíveis ou não."""
+    columns = [
+        "Data da compra", "Primeira compra da família", "Grupo comercial", "Família",
+        "Produtos", "Pedido de venda", "Vendedores", "Região", "Segmento",
+        "Valor da linha", "Mínimo", "Resultado", "XP",
+    ]
+    frame = pd.DataFrame([
+        row for row in rows if str(row.get("regiao") or "").strip() == region
+    ])
+    if frame.empty:
+        return pd.DataFrame(columns=columns)
+    frame["data_expansao"] = pd.to_datetime(
+        frame["data_expansao"], errors="coerce"
+    ).dt.strftime("%d/%m/%Y")
+    frame["data_primeira_compra_familia"] = pd.to_datetime(
+        frame["data_primeira_compra_familia"], errors="coerce"
+    ).dt.strftime("%d/%m/%Y")
+    frame["pedidos"] = frame["pedidos"].map(format_sales_orders)
+    frame = frame.rename(columns={
+        "data_expansao": "Data da compra",
+        "data_primeira_compra_familia": "Primeira compra da família",
+        "nome_grupo_comercial": "Grupo comercial",
+        "grupo_mix": "Família",
+        "produtos": "Produtos",
+        "pedidos": "Pedido de venda",
+        "vendedor": "Vendedores",
+        "regiao": "Região",
+        "segmento": "Segmento",
+        "valor_linha_elegivel": "Valor da linha",
+        "valor_minimo": "Mínimo",
+        "situacao_evento": "Resultado",
+        "xp": "XP",
+    })
+    return frame[columns]
+
+
+def build_individual_sales_frame(sales_results: list[dict], region: str) -> pd.DataFrame:
+    """Prepara o resultado acumulado de venda e meta da região."""
+    columns = [
+        "Região", "Vendedores", "Realizado acumulado", "Meta acumulada até hoje",
+        "Atingimento acumulado", "XP da região", "Meta diária atual",
+    ]
+    frame = pd.DataFrame([
+        row for row in sales_results if str(row.get("regiao") or "").strip() == region
+    ])
+    if frame.empty:
+        return pd.DataFrame(columns=columns)
+    frame = frame.rename(columns={
+        "regiao": "Região",
+        "vendedores": "Vendedores",
+        "realizado_acumulado": "Realizado acumulado",
+        "meta_acumulada_ate_data": "Meta acumulada até hoje",
+        "atingimento_acumulado_pct": "Atingimento acumulado",
+        "xp": "XP da região",
+        "meta_diaria_mes_atual": "Meta diária atual",
+    })
+    for column in (
+        "Realizado acumulado", "Meta acumulada até hoje",
+        "Atingimento acumulado", "Meta diária atual",
+    ):
+        frame[column] = frame[column].map(
+            lambda value: float(value) if value is not None else None
+        )
+    return frame[columns]
+
+
+def build_individual_advancement_frame(
+    advancement_by_month: dict[date, list[dict]], region: str,
+) -> pd.DataFrame:
+    """Lista as confirmações mensais de adiantamento da região."""
+    columns = [
+        "Mês", "1ª semana - 32%", "2ª semana - 56%", "3ª semana - 80%",
+        "XP", "Observações",
+    ]
+    records = []
+    for month, rows in sorted(advancement_by_month.items()):
+        source = next(
+            (row for row in rows if str(row.get("regiao") or "").strip() == region),
+            None,
+        )
+        if source is None:
+            continue
+        checks = {field: bool(source.get(field)) for field in FIELDS}
+        records.append({
+            "Mês": f"{MONTHS[month.month]} {month.year}",
+            "1ª semana - 32%": checks["semana_1_32"],
+            "2ª semana - 56%": checks["semana_2_56"],
+            "3ª semana - 80%": checks["semana_3_80"],
+            "XP": 10 * sum(checks.values()),
+            "Observações": str(source.get("observacao") or ""),
+        })
+    return pd.DataFrame(records, columns=columns)
+
+
 def build_new_customers_region_summary(frame: pd.DataFrame) -> pd.DataFrame:
     """Resume as linhas de atribuição dos clientes novos por região."""
     records = [
@@ -590,6 +749,7 @@ def render_sidebar(identity: Identity, authenticator: SupabaseAuthenticator):
             "Página",
             (
                 "Visão geral",
+                "Análise individual",
                 "Venda no Quadrimestre",
                 "Clientes novos",
                 "Clientes reativados",
@@ -662,6 +822,191 @@ def render_overview(
         hide_index=True,
         width="stretch",
     )
+
+
+def render_individual_analysis(
+    advancement_repository: Repository,
+    new_customers_repository: NewCustomersRepository,
+    reactivated_customers_repository: ReactivatedCustomersRepository,
+    product_mix_repository: ProductMixRepository,
+    sales_repository: SalesRepository,
+    reference: date | None = None,
+):
+    """Exibe o resultado completo de uma região e os eventos que formam seu XP."""
+    reference = reference or datetime.now(ZoneInfo("America/Sao_Paulo")).date()
+    render_page_header(
+        "Análise individual",
+        "Selecione uma região para conferir seu XP e todos os resultados da campanha.",
+    )
+
+    advancement_by_month = advancement_repository.load_campaign()
+    new_customers = new_customers_repository.load()
+    reactivated_customers = reactivated_customers_repository.load()
+    product_mix = product_mix_repository.load()
+    rows_by_month = sales_repository.load_through(reference)
+    available_sales = {month: rows for month, rows in rows_by_month.items() if rows}
+    sales_results = (
+        calculate_cumulative_region_results(available_sales, reference)
+        if available_sales else []
+    )
+    overview = build_xp_overview_frame(
+        advancement_by_month,
+        new_customers,
+        reactivated_customers,
+        product_mix,
+        sales_results,
+    )
+    if overview.empty:
+        st.info("Nenhuma região participante está disponível para a campanha.")
+        return
+
+    selected_region = st.selectbox(
+        "Região",
+        overview["Região"].tolist(),
+        key="individual_analysis_region",
+    )
+    position = overview.index[overview["Região"] == selected_region][0] + 1
+    regional = overview[overview["Região"] == selected_region].iloc[0]
+
+    total_column, classification_column, position_column = st.columns(3)
+    total_column.metric("XP total", f"{float(regional['XP total']):g} XP")
+    classification_column.metric("Classificação", regional["Classificação"])
+    position_column.metric("Posição no ranking", f"{position}º de {len(overview)}")
+
+    components = [
+        ("Clientes novos", "XP por cliente novo"),
+        ("Clientes reativados", "XP por cliente reativado"),
+        ("Expansão de mix", "XP por expansão de mix"),
+        ("Atingimento de meta", "XP por atingimento de meta"),
+        ("Adiantamento", "XP por adiantamento"),
+    ]
+    st.subheader("Composição do XP")
+    metric_columns = st.columns(len(components))
+    chart_records = []
+    for metric_column, (label, source_column) in zip(metric_columns, components):
+        xp = float(regional[source_column])
+        metric_column.metric(label, f"{xp:g} XP")
+        chart_records.append({"Indicador": label, "XP": xp})
+    st.bar_chart(
+        pd.DataFrame(chart_records).set_index("Indicador"),
+        color=POLAR_BLUE,
+        height=280,
+    )
+    st.caption(
+        "Os totais de clientes novos e reativados já consideram os tetos acumulados por "
+        "vendedor. As tabelas abaixo preservam cada evento para conferência."
+    )
+
+    new_detail = build_individual_new_customers_frame(new_customers, selected_region)
+    reactivated_detail = build_individual_reactivated_customers_frame(
+        reactivated_customers, selected_region
+    )
+    mix_detail = build_individual_product_mix_frame(product_mix, selected_region)
+    sales_detail = build_individual_sales_frame(sales_results, selected_region)
+    advancement_detail = build_individual_advancement_frame(
+        advancement_by_month, selected_region
+    )
+
+    st.subheader("Detalhamento da região")
+    new_tab, reactivated_tab, mix_tab, sales_tab, advancement_tab = st.tabs([
+        "Clientes novos",
+        "Clientes reativados",
+        "Expansão de mix",
+        "Venda x meta",
+        "Adiantamento",
+    ])
+    with new_tab:
+        if new_detail.empty:
+            st.info("A região não possui clientes novos na campanha.")
+        else:
+            st.dataframe(
+                new_detail,
+                column_config={
+                    "XP": st.column_config.NumberColumn("XP", format="%.0f XP"),
+                },
+                hide_index=True,
+                width="stretch",
+            )
+    with reactivated_tab:
+        if reactivated_detail.empty:
+            st.info("A região não possui clientes reativados na campanha.")
+        else:
+            st.dataframe(
+                reactivated_detail,
+                column_config={
+                    "XP": st.column_config.NumberColumn("XP", format="%.0f XP"),
+                },
+                hide_index=True,
+                width="stretch",
+            )
+    with mix_tab:
+        st.caption(
+            "A tabela mostra todas as compras das famílias acompanhadas e explica se cada "
+            "uma foi elegível para XP."
+        )
+        if mix_detail.empty:
+            st.info("A região não possui compras dos produtos de mix na campanha.")
+        else:
+            st.dataframe(
+                mix_detail,
+                column_config={
+                    "Valor da linha": st.column_config.NumberColumn(
+                        "Valor da linha", format="R$ %.2f"
+                    ),
+                    "Mínimo": st.column_config.NumberColumn("Mínimo", format="R$ %.2f"),
+                    "XP": st.column_config.NumberColumn("XP", format="%.0f XP"),
+                },
+                hide_index=True,
+                width="stretch",
+            )
+    with sales_tab:
+        st.caption(f"Resultado acumulado até {reference:%d/%m/%Y}.")
+        if sales_detail.empty:
+            st.info("A região ainda não possui venda e meta acumuladas disponíveis.")
+        else:
+            st.dataframe(
+                sales_detail,
+                column_config={
+                    "Realizado acumulado": st.column_config.NumberColumn(
+                        "Realizado acumulado", format="R$ %.2f"
+                    ),
+                    "Meta acumulada até hoje": st.column_config.NumberColumn(
+                        "Meta acumulada até hoje", format="R$ %.2f"
+                    ),
+                    "Atingimento acumulado": st.column_config.NumberColumn(
+                        "Atingimento acumulado", format="%.1f%%"
+                    ),
+                    "XP da região": st.column_config.NumberColumn(
+                        "XP da região", format="%.0f XP"
+                    ),
+                    "Meta diária atual": st.column_config.NumberColumn(
+                        "Meta diária atual", format="R$ %.2f"
+                    ),
+                },
+                hide_index=True,
+                width="stretch",
+            )
+    with advancement_tab:
+        if advancement_detail.empty:
+            st.info("A região não possui registros de adiantamento na campanha.")
+        else:
+            st.dataframe(
+                advancement_detail,
+                column_config={
+                    "1ª semana - 32%": st.column_config.CheckboxColumn(
+                        "1ª semana - 32%", disabled=True
+                    ),
+                    "2ª semana - 56%": st.column_config.CheckboxColumn(
+                        "2ª semana - 56%", disabled=True
+                    ),
+                    "3ª semana - 80%": st.column_config.CheckboxColumn(
+                        "3ª semana - 80%", disabled=True
+                    ),
+                    "XP": st.column_config.NumberColumn("XP", format="%.0f XP"),
+                },
+                hide_index=True,
+                width="stretch",
+            )
 
 
 def render_quadrimester_sales(repository: SalesRepository, reference: date | None = None):
@@ -1180,6 +1525,14 @@ def main():
                 ProductMixRepository(data_client),
                 SalesRepository(data_client),
                 BudgetRepository(data_client),
+            )
+        elif page == "Análise individual":
+            render_individual_analysis(
+                repository,
+                NewCustomersRepository(data_client),
+                ReactivatedCustomersRepository(data_client),
+                ProductMixRepository(data_client),
+                SalesRepository(data_client),
             )
         elif page == "Venda no Quadrimestre":
             render_quadrimester_sales(SalesRepository(data_client))

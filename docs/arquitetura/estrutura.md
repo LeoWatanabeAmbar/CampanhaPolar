@@ -2,7 +2,7 @@
 
 **Confirmado pelo usuário:** o painel será desenvolvido em Streamlit. Este documento coleta preferências e restrições; não é necessário definir detalhes técnicos agora.
 
-**Painel atualizado em 15/09/2026:** [app.py](../../app.py) reúne visão geral, Venda no Quadrimestre, clientes novos, clientes reativados, mix de produtos e adiantamento manual por região. A interface usa o padrão visual do Gestão Comercial. Configuração, testes e situação de implantação estão no [README do projeto](../../README.md).
+**Painel atualizado em 16/09/2026:** [app.py](../../app.py) reúne visão geral, análise individual por região, Venda no Quadrimestre, clientes novos, clientes reativados, mix de produtos e adiantamento manual. A interface usa o padrão visual do Gestão Comercial. Configuração, testes e situação de implantação estão no [README do projeto](../../README.md).
 
 ## Entrada e atualização dos dados
 
@@ -58,6 +58,7 @@ Descreva as telas desejadas em linguagem simples. Exemplos possíveis: visão ge
 | Tela desejada | O que deve mostrar | Quem pode acessar |
 | --- | --- | --- |
 | Visão geral | Cartão do realizado elegível de 2026 contra o budget anual de R$ 119 milhões; ranking decrescente dos cinco indicadores, total e classificação por região | Usuários autenticados consultam |
+| Análise individual | Filtro regional, XP total, classificação, posição no ranking, composição e detalhes de clientes novos, reativados, mix, venda e adiantamento | Usuários autenticados consultam |
 | Venda no Quadrimestre | Meta e realizado acumulados desde setembro, com o mês atual proporcional aos dias úteis, atingimento exato, XP e dias úteis em indicador no topo | Usuários autenticados consultam |
 | Clientes novos | Resumo de quantidade, lista e XP por região; detalhe de data, grupo, pedidos, vendedor, região, segmento, atribuição e XP | Usuários autenticados consultam |
 | Clientes reativados | Resumo de quantidade, lista e XP por região; detalhe do retorno por vendedor, com duas linhas para triangulações | Usuários autenticados consultam |
@@ -68,7 +69,7 @@ Descreva as telas desejadas em linguagem simples. Exemplos possíveis: visão ge
 
 - Logo e imagens disponíveis na pasta assets: `assets/logo_polar_horizontal.png`, copiado da referência local do Gestão Comercial.
 - Cores e referências visuais: **confirmado pelo usuário em 14/09/2026**, seguir o padrão do Gestão Comercial: azul Polar `#0072D6`, azul escuro `#005DAD`, fundo branco, cartões com borda azul, cabeçalhos de tabela azuis, texto principal `#17233A` e fundo secundário `#F4F8FC`.
-- Nome exibido: `Campanha Polar`; navegação com visão geral, Venda no Quadrimestre, novos, reativados, mix e adiantamento.
+- Nome exibido: `Campanha Polar`; navegação com visão geral, análise individual, Venda no Quadrimestre, novos, reativados, mix e adiantamento.
 
 ## Operação e manutenção
 

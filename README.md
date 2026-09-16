@@ -1,8 +1,9 @@
 # Campanha Polar
 
-Painel implementado no padrão visual do Gestão Comercial, com navegação lateral e seis páginas:
+Painel implementado no padrão visual do Gestão Comercial, com navegação lateral e sete páginas:
 
 - **Visão geral:** cartão do realizado elegível de 2026 contra o budget anual de R$ 119 milhões e ranking regional, ordenado pelo XP total, com os cinco indicadores e a classificação da campanha.
+- **Análise individual:** filtro de região, XP total, classificação, posição no ranking, composição dos cinco indicadores e tabelas com todos os eventos que formam o resultado.
 - **Venda no Quadrimestre:** realizado elegível acumulado desde setembro contra as metas regionais disponíveis, usando a meta proporcional do mês atual para calcular o atingimento e o XP por região.
 - **Clientes novos:** resumo por região e detalhamento por vendedor, com duas linhas para triangulações e o XP atribuído a cada participante.
 - **Clientes reativados:** resumo por região e detalhamento por vendedor dos retornos após 6 meses em Canais ou 12 meses em Construção.

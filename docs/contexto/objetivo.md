@@ -1,6 +1,6 @@
 # Objetivo do painel
 
-**Confirmado pelo usuário:** desenvolver um painel em Streamlit para visualizar o atingimento da campanha XP Polar. A implementação contém visão geral, Venda no Quadrimestre, adiantamento por região e páginas de clientes novos, clientes reativados e mix de produtos para toda a campanha.
+**Confirmado pelo usuário:** desenvolver um painel em Streamlit para visualizar o atingimento da campanha XP Polar. A implementação contém visão geral, análise individual por região, Venda no Quadrimestre, adiantamento e páginas de clientes novos, clientes reativados e mix de produtos para toda a campanha.
 
 ## Público e decisões
 
@@ -17,10 +17,10 @@ Marque as necessárias e acrescente outras.
 - [x] Qual é a meta planejada de vendas por dia útil?
 - [x] Quanto a região deveria ter vendido no quadrimestre até hoje e qual é seu atingimento acumulado?
 - [x] Quantos XP de vendas são calculados pelo atingimento acumulado da região?
-- [ ] Quantos XP tenho em cada indicador?
-- [ ] Em qual nível estou e quanto falta para o próximo?
+- [x] Quantos XP tenho em cada indicador?
+- [x] Em qual nível estou?
 - [ ] Qual é meu prêmio estimado conforme o Budget da empresa?
-- [ ] Como está o ranking de participantes?
+- [x] Como está o ranking das regiões participantes?
 - [ ] Quais clientes e vendas geraram meus pontos?
 - [x] Quais fases de adiantamento foram confirmadas para cada região no mês?
 - [ ] Como meu resultado evoluiu durante a campanha?
@@ -29,14 +29,15 @@ Marque as necessárias e acrescente outras.
 ## Visualizações e filtros
 
 - Visão geral simplificada, **confirmada pelo usuário em 16/09/2026**: mostrar um cartão visual de atingimento do budget anual de vendas de R$ 119 milhões e uma tabela regional com XP de clientes novos, clientes reativados, expansão de mix, atingimento de meta, adiantamento, XP total e classificação. Ordenar as regiões pelo XP total decrescente, com desempate alfabético.
+- Análise individual solicitada em 16/09/2026: selecionar uma região e mostrar XP total, classificação, posição no ranking e a composição pelos cinco indicadores. Disponibilizar, na mesma tela, o detalhamento dos clientes novos, clientes reativados, compras de mix, venda contra meta e checks mensais de adiantamento da região.
 - Gráficos ou tabelas desejados: proposta de comparação do realizado acumulado com a meta parcial por dia útil, acompanhada de tabela por data para conferência. O formato visual definitivo permanece a definir.
 - Tabela de adiantamento atualizada em 15/09/2026: uma linha por região e 12 checks, com as três fases de setembro, outubro, novembro e dezembro lado a lado. Somente `lais.vendrasco@ambar.tech` e `leonardo.watanabe@ambar.tech` podem preencher e salvar; os demais usuários autenticados visualizam.
 - Visão de clientes novos solicitada e implementada em 15/09/2026: resumo regional com quantidade, lista de clientes e XP; abaixo, filtro de região e detalhe por vendedor. Exibe 10 XP em uma atribuição integral ou duas linhas de 5 XP quando houver dois vendedores, antes do teto individual acumulado de 100 XP.
 - Visão de clientes reativados implementada em 15/09/2026: resumo de quantidade, lista e XP por região, seguido de filtro regional e detalhe por vendedor. Mostra a última compra, o retorno, o prazo de 6 ou 12 meses e 8 XP por evento confirmado, divididos em duas linhas de 4 XP quando houver dois vendedores.
 - Visão de mix de produtos implementada em 15/09/2026: resumo regional das expansões confirmadas, seguido de filtro regional e detalhe por vendedor. Mostra família, produtos, mínimo, exclusão de KA e 10 XP por expansão, divididos em duas linhas de 5 XP quando houver dois vendedores. Eventos afetados por devolução sem detalhe de produto permanecem pendentes.
 - Visão de Venda no Quadrimestre implementada em 15/09/2026 e ajustada após confirmação do usuário: acumula os meses desde setembro. Meses encerrados entram com meta e vendas integrais; o mês atual entra com vendas até a referência e meta proporcional aos dias úteis. Mostra atingimento exato e XP por região, com dias úteis em um indicador no topo. A tabela omite metas publicadas e a meta integral do mês atual. Os vendedores aparecem para identificar a composição das vendas, sem dividir ou duplicar o XP regional.
-- XP de adiantamento, confirmado pelo usuário em 14/09/2026: vinculado à região, com 10 XP por fase confirmada, até 30 XP no mês e 120 XP na campanha. Dois vendedores na região não dividem nem duplicam os pontos. O painel já calcula e exibe o total mensal a partir dos checks salvos; a integração ao total completo da campanha permanece na etapa de apuração.
-- Navegação: o filtro global de competência foi removido em 15/09/2026. As telas abrangem a campanha inteira e identificam a competência nas tabelas. Filtros futuros de região, vendedor, gestor, segmento e data de referência permanecem vinculados à necessidade de cada visão.
+- XP de adiantamento, confirmado pelo usuário em 14/09/2026: vinculado à região, com 10 XP por fase confirmada, até 30 XP no mês e 120 XP na campanha. Dois vendedores na região não dividem nem duplicam os pontos. O painel calcula o total mensal a partir dos checks salvos e o integra ao XP total da região na Visão geral e na Análise individual.
+- Navegação: o filtro global de competência foi removido em 15/09/2026. As telas abrangem a campanha inteira e identificam a competência nas tabelas. A Análise individual filtra uma região por vez; outros filtros permanecem vinculados à necessidade de cada visão.
 - Vínculo vendedor–região: **confirmado pelo usuário em 14/09/2026**, os vendedores não mudarão de região durante a campanha. Usar a região cadastrada para todas as competências, mantendo uma única meta e pontuação regional mesmo quando houver dois vendedores.
 - Data dos pedidos: **confirmada pelo usuário em 14/09/2026**, emissão = implantação. Usar `data_emissao` para determinar o mês da venda e o realizado acumulado até a referência, observadas as condições de elegibilidade.
 - Valor do realizado: **confirmado pelo usuário em 14/09/2026**, comparar o valor bruto dos pedidos com a meta regional, usando `valor_bruto_total` como referência na fonte de vendas.

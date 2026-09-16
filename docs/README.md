@@ -2,7 +2,7 @@
 
 Estes arquivos são roteiros para você descrever a campanha e as bases antes de desenvolver o painel em Streamlit.
 
-**Implementação atualizada em 15/09/2026:** o painel disponível em [app.py](../app.py) contém visão geral, clientes novos, clientes reativados, mix de produtos e preenchimento manual de adiantamento. Todos os usuários autenticados consultam; somente `lais.vendrasco@ambar.tech` e `leonardo.watanabe@ambar.tech` alteram o adiantamento. O acesso usa Supabase Auth e Data API, sem senha PostgreSQL no Streamlit. Instruções no [README do projeto](../README.md).
+**Implementação atualizada em 16/09/2026:** o painel disponível em [app.py](../app.py) contém visão geral, análise individual por região, Venda no Quadrimestre, clientes novos, clientes reativados, mix de produtos e preenchimento manual de adiantamento. Todos os usuários autenticados consultam; somente `lais.vendrasco@ambar.tech` e `leonardo.watanabe@ambar.tech` alteram o adiantamento. O acesso usa Supabase Auth e Data API, sem senha PostgreSQL no Streamlit. Instruções no [README do projeto](../README.md).
 
 ## Como preencher
 
