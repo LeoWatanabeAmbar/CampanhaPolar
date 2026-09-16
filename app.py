@@ -10,6 +10,7 @@ import pandas as pd
 import streamlit as st
 
 from polar.autenticacao import AuthenticationServiceError, SupabaseAuthenticator
+from polar.atualizacao import DataRefreshRepository
 from polar.budget import BudgetRepository
 from polar.adiantamento import (
     EDITOR_EMAILS,
@@ -746,7 +747,6 @@ def render_sidebar(
     updated_at: datetime | None = None,
 ):
     """Renderiza navegação e conta conectada."""
-    updated_at = updated_at or datetime.now(ZoneInfo("America/Sao_Paulo"))
     with st.sidebar:
         st.caption("NAVEGAÇÃO")
         page = st.radio(
@@ -768,8 +768,11 @@ def render_sidebar(
         access = "Pode editar o adiantamento" if identity.can_edit else "Acesso para consulta"
         st.caption(access)
         st.divider()
-        st.caption("ÚLTIMA ATUALIZAÇÃO DO PAINEL")
-        st.write(f"{updated_at:%d/%m/%Y às %H:%M}")
+        st.caption("ÚLTIMA ATUALIZAÇÃO DOS DADOS")
+        if updated_at is None:
+            st.write("Não disponível")
+        else:
+            st.write(f"{updated_at:%d/%m/%Y às %H:%M:%S}")
         if st.button("Sair", key="polar_logout", width="stretch"):
             saved_session = st.session_state.get("supabase_auth_session", {})
             try:
@@ -1521,8 +1524,11 @@ def main():
 
     if LOGO_PATH.is_file():
         st.logo(str(LOGO_PATH), size="large")
-    panel_updated_at = datetime.now(ZoneInfo("America/Sao_Paulo"))
-    panel_reference = panel_updated_at.date()
+    panel_reference = datetime.now(ZoneInfo("America/Sao_Paulo")).date()
+    try:
+        panel_updated_at = DataRefreshRepository(data_client).load()
+    except DataAccessError:
+        panel_updated_at = None
     page = render_sidebar(identity, authenticator, panel_updated_at)
     try:
         repository = Repository(data_client)

@@ -291,17 +291,17 @@ def sidebar_runner():
     )
 
 
-def test_sidebar_shows_panel_update_date():
+def test_sidebar_shows_data_refresh_datetime():
     app = AppTest.from_function(sidebar_runner)
     app.session_state["actor"] = EDITOR
     app.session_state["authenticator"] = SimpleNamespace(sign_out=lambda session: None)
     app.run(timeout=15)
 
     assert not app.exception
-    assert "ÚLTIMA ATUALIZAÇÃO DO PAINEL" in [
+    assert "ÚLTIMA ATUALIZAÇÃO DOS DADOS" in [
         caption.value for caption in app.sidebar.caption
     ]
-    assert "16/09/2026 às 14:35" in [
+    assert "16/09/2026 às 14:35:00" in [
         block.value for block in app.sidebar.markdown
     ]
 
