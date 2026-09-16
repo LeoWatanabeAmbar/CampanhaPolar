@@ -10,6 +10,7 @@ import pandas as pd
 import streamlit as st
 
 from polar.autenticacao import AuthenticationServiceError, SupabaseAuthenticator
+from polar.budget import BudgetRepository
 from polar.adiantamento import (
     EDITOR_EMAILS,
     FIELDS,
@@ -176,29 +177,72 @@ def format_percentage_br(value: float) -> str:
     return f"{value:,.1f}%".replace(",", "_").replace(".", ",").replace("_", ".")
 
 
-def build_overview_frame(rows: list[dict], goals: list[dict]) -> pd.DataFrame:
-    """Combina meta e confirmação manual no grão região/competência."""
-    goals_by_region = {row["regiao"]: row for row in goals}
-    records = []
+def indicator_xp_by_region(rows: list[dict], seller_cap: float | None = None) -> dict[str, float]:
+    """Soma XP por região, aplicando antes o teto acumulado de cada vendedor."""
+    if seller_cap is None:
+        totals: dict[str, float] = {}
+        for row in rows:
+            region = str(row.get("regiao") or "").strip()
+            if region:
+                totals[region] = totals.get(region, 0.0) + float(row.get("xp") or 0)
+        return totals
+
+    seller_totals: dict[tuple[str, str], float] = {}
     for row in rows:
-        confirmations = sum(bool(row[field]) for field in FIELDS)
-        goal = goals_by_region.get(row["regiao"], {})
-        records.append({
-            "Região": row["regiao"],
-            "Time": goal.get("time", ""),
-            "Meta": float(goal.get("meta") or 0),
-            LABELS["semana_1_32"]: bool(row["semana_1_32"]),
-            LABELS["semana_2_56"]: bool(row["semana_2_56"]),
-            LABELS["semana_3_80"]: bool(row["semana_3_80"]),
-            "Fases": confirmations,
-            "Progresso": confirmations / len(FIELDS),
-            "XP": confirmations * 10,
-            "Situação": (
-                "Todas as fases confirmadas" if confirmations == len(FIELDS)
-                else "Em andamento" if confirmations
-                else "Sem atingimento marcado"
-            ),
-        })
+        region = str(row.get("regiao") or "").strip()
+        seller = str(row.get("vendedor") or "Não identificado").strip()
+        if region:
+            key = (region, seller)
+            seller_totals[key] = seller_totals.get(key, 0.0) + float(row.get("xp") or 0)
+    totals: dict[str, float] = {}
+    for (region, _seller), xp in seller_totals.items():
+        totals[region] = totals.get(region, 0.0) + min(xp, seller_cap)
+    return totals
+
+
+def build_xp_overview_frame(
+    advancement_by_month: dict[date, list[dict]],
+    new_customers: list[dict],
+    reactivated_customers: list[dict],
+    product_mix: list[dict],
+    sales_results: list[dict],
+) -> pd.DataFrame:
+    """Consolida os cinco indicadores no grão regional."""
+    advancement_xp: dict[str, float] = {}
+    regions: set[str] = set()
+    for rows in advancement_by_month.values():
+        for row in rows:
+            region = str(row.get("regiao") or "").strip()
+            if not region:
+                continue
+            regions.add(region)
+            advancement_xp[region] = advancement_xp.get(region, 0.0) + 10 * sum(
+                bool(row.get(field)) for field in FIELDS
+            )
+
+    new_xp = indicator_xp_by_region(new_customers, seller_cap=100)
+    reactivated_xp = indicator_xp_by_region(reactivated_customers, seller_cap=80)
+    mix_xp = indicator_xp_by_region(product_mix)
+    sales_xp = {
+        str(row.get("regiao") or "").strip(): float(row.get("xp") or 0)
+        for row in sales_results
+        if str(row.get("regiao") or "").strip()
+    }
+    regions.update(new_xp)
+    regions.update(reactivated_xp)
+    regions.update(mix_xp)
+    regions.update(sales_xp)
+
+    records = []
+    for region in sorted(regions):
+        values = {
+            "XP por cliente novo": new_xp.get(region, 0.0),
+            "XP por cliente reativado": reactivated_xp.get(region, 0.0),
+            "XP por expansão de mix": mix_xp.get(region, 0.0),
+            "XP por atingimento de meta": sales_xp.get(region, 0.0),
+            "XP por adiantamento": advancement_xp.get(region, 0.0),
+        }
+        records.append({"Região": region, **values, "XP total": sum(values.values())})
     return pd.DataFrame(records)
 
 
@@ -455,57 +499,59 @@ def render_sidebar(identity: Identity, authenticator: SupabaseAuthenticator):
     return page
 
 
-def render_overview(repository: Repository):
-    """Exibe a visão executiva consolidada das competências com metas publicadas."""
+def render_overview(
+    advancement_repository: Repository,
+    new_customers_repository: NewCustomersRepository,
+    reactivated_customers_repository: ReactivatedCustomersRepository,
+    product_mix_repository: ProductMixRepository,
+    sales_repository: SalesRepository,
+    budget_repository: BudgetRepository,
+    reference: date | None = None,
+):
+    """Exibe o budget anual e os XP consolidados por região."""
+    reference = reference or datetime.now(ZoneInfo("America/Sao_Paulo")).date()
     render_page_header(
         "Visão geral",
-        "Acompanhe metas regionais, fases confirmadas e XP de adiantamento na campanha.",
+        "Acompanhe o budget anual de vendas e o XP consolidado de cada região.",
     )
-    rows = []
-    frames = []
-    for month, month_rows in repository.load_campaign().items():
-        if not month_rows:
-            continue
-        rows.extend(month_rows)
-        month_frame = build_overview_frame(month_rows, month_rows)
-        month_frame.insert(0, "Competência", MONTHS[month.month])
-        frames.append(month_frame)
-    frame = pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
+    budget = budget_repository.load()
+    budget_attainment = float(budget["atingimento_pct"])
+    st.subheader("Atingimento do budget anual de vendas")
+    st.progress(
+        min(max(budget_attainment / 100, 0.0), 1.0),
+        text=(
+            f"{format_percentage_br(budget_attainment)} · "
+            f"{format_currency_br(float(budget['realizado']))} de "
+            f"{format_currency_br(float(budget['budget']))}"
+        ),
+    )
+    budget_reference = date.fromisoformat(str(budget["data_referencia"]))
+    st.caption(f"Realizado elegível de 2026 até {budget_reference:%d/%m/%Y}.")
+
+    advancement_by_month = advancement_repository.load_campaign()
+    rows_by_month = sales_repository.load_through(reference)
+    available_sales = {month: rows for month, rows in rows_by_month.items() if rows}
+    sales_results = (
+        calculate_cumulative_region_results(available_sales, reference)
+        if available_sales else []
+    )
+    frame = build_xp_overview_frame(
+        advancement_by_month,
+        new_customers_repository.load(),
+        reactivated_customers_repository.load(),
+        product_mix_repository.load(),
+        sales_results,
+    )
+
+    st.subheader("XP por região")
     if frame.empty:
-        st.info("Nenhuma região com meta positiva está disponível para a campanha.")
+        st.info("Nenhuma região participante está disponível para a campanha.")
         return
-
-    checked = int(frame["Fases"].sum())
-    total_phases = len(frame) * len(FIELDS)
-    metric_goal, metric_regions, metric_phases, metric_xp = st.columns(4)
-    metric_goal.metric("Metas publicadas", format_currency_br(float(frame["Meta"].sum())))
-    metric_regions.metric("Regiões participantes", frame["Região"].nunique())
-    metric_phases.metric("Fases confirmadas", f"{checked} de {total_phases}")
-    metric_xp.metric("XP de adiantamento", f"{checked * 10} XP")
-
-    st.subheader("Cobertura das fases")
-    phase_columns = st.columns(3)
-    for column, field in zip(phase_columns, FIELDS):
-        confirmed = sum(bool(row[field]) for row in rows)
-        with column:
-            st.caption(LABELS[field])
-            st.progress(confirmed / len(rows), text=f"{confirmed} de {len(rows)} região-mês")
-
-    st.subheader("Detalhamento regional")
-    st.caption("Cada fase confirmada gera 10 XP para a região.")
     st.dataframe(
         frame,
         column_config={
-            "Meta": st.column_config.NumberColumn("Meta", format="R$ %.2f"),
-            **{
-                LABELS[field]: st.column_config.CheckboxColumn(LABELS[field])
-                for field in FIELDS
-            },
-            "Fases": st.column_config.NumberColumn("Fases", format="%d"),
-            "Progresso": st.column_config.ProgressColumn(
-                "Progresso", min_value=0.0, max_value=1.0, format="percent",
-            ),
-            "XP": st.column_config.NumberColumn("XP", format="%d XP"),
+            column: st.column_config.NumberColumn(column, format="%.0f XP")
+            for column in frame.columns if column != "Região"
         },
         hide_index=True,
         width="stretch",
@@ -1030,7 +1076,14 @@ def main():
     try:
         repository = Repository(data_client)
         if page == "Visão geral":
-            render_overview(repository)
+            render_overview(
+                repository,
+                NewCustomersRepository(data_client),
+                ReactivatedCustomersRepository(data_client),
+                ProductMixRepository(data_client),
+                SalesRepository(data_client),
+                BudgetRepository(data_client),
+            )
         elif page == "Venda no Quadrimestre":
             render_quadrimester_sales(SalesRepository(data_client))
         elif page == "Clientes novos":

@@ -245,26 +245,6 @@ def test_sql_secures_rpc_and_filters_goal_regions():
     assert "(select auth.jwt()) ->> 'email'" in sql
 
 
-def test_overview_combines_goals_checks_and_regional_xp():
-    from app import build_overview_frame
-
-    rows = [
-        dict(blank_record("REG 01"), semana_1_32=True, semana_2_56=True),
-        blank_record("REG 02"),
-    ]
-    goals = [
-        {"regiao": "REG 01", "time": "Time Norte", "meta": 100_000},
-        {"regiao": "REG 02", "time": "Canais", "meta": 50_000},
-    ]
-    overview = build_overview_frame(rows, goals).set_index("Região")
-
-    assert overview.loc["REG 01", "Meta"] == 100_000
-    assert overview.loc["REG 01", "Fases"] == 2
-    assert overview.loc["REG 01", "Progresso"] == pytest.approx(2 / 3)
-    assert overview.loc["REG 01", "XP"] == 20
-    assert overview.loc["REG 02", "XP"] == 0
-
-
 def ui_runner():
     import streamlit as st
     from app import render_table
@@ -273,12 +253,6 @@ def ui_runner():
         st.session_state["actor"],
         lambda: (st.session_state["current_actor"], None),
     )
-
-
-def overview_ui_runner():
-    import streamlit as st
-    from app import render_overview
-    render_overview(st.session_state["repo"])
 
 
 def make_ui(repository, actor):
@@ -293,23 +267,6 @@ def test_viewer_ui_has_no_save_button(repository):
     app = make_ui(repository, READER)
     assert not app.exception
     assert not any(button.label == "Salvar alterações" for button in app.button)
-    assert len(app.dataframe) == 1
-
-
-def test_overview_ui_renders_metrics_progress_and_region_table(repository):
-    repository.save(MONTH, [
-        dict(blank_record("REG 01"), semana_1_32=True),
-        blank_record("REG 02"),
-    ], EDITOR)
-    app = AppTest.from_function(overview_ui_runner)
-    app.session_state["repo"] = repository
-    app.run(timeout=15)
-
-    assert not app.exception
-    assert [metric.label for metric in app.metric] == [
-        "Metas publicadas", "Regiões participantes", "Fases confirmadas", "XP de adiantamento",
-    ]
-    assert app.metric[3].value == "10 XP"
     assert len(app.dataframe) == 1
 
 

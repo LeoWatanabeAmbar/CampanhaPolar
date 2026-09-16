@@ -34,7 +34,7 @@ O mapeamento está em [timesSegmentos.csv](../dados/timesSegmentos.csv). Times a
 | Cliente novo | Grupo comercial sem compra anterior na empresa no histórico aceito desde janeiro de 2022; não reinicia por vendedor, região, segmento, CNPJ ou loja |
 | Mix | Uma das quatro linhas da campanha: Hydrofix, CPP 009, Grelha + Porta Grelha ou Suporte de Bancada. Os 23 códigos estão mapeados em `produtosMix.csv` |
 | Antecipação / adiantamento | Indicador com três checks manuais `true`/`false` por região e mês para as referências de 32%, 56% e 80%. O usuário autorizado decide o atingimento; o sistema não calcula prazos ou percentuais. XP regional: 10 por fase marcada, até 30 no mês e 120 na campanha |
-| Budget Anual | Atingimento anual da empresa que condiciona o pagamento dos prêmios conforme o regulamento; fonte e cálculo do percentual ainda precisam ser definidos |
+| Budget Anual | Meta de vendas de R$ 119 milhões em 2026. O painel compara esse valor com a venda bruta elegível acumulada no ano e mostra o percentual na Visão geral |
 
 ## Materiais complementares
 

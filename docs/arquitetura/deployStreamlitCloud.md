@@ -43,19 +43,19 @@ O aplicativo usa a API do Supabase Authentication para validar `auth.users`; nã
 
 ## 5. Preparar o banco
 
-Antes do primeiro uso, execute [adiantamento_meta.sql](../../sql/adiantamento_meta.sql), [vendas_quadrimestre.sql](../../sql/vendas_quadrimestre.sql), [clientes_novos.sql](../../sql/clientes_novos.sql), [clientes_reativados.sql](../../sql/clientes_reativados.sql) e [mix_produtos.sql](../../sql/mix_produtos.sql) no SQL Editor do Supabase. Em um projeto que já recebeu a versão anterior do adiantamento, execute também [20260915_usar_data_api.sql](../../sql/migrations/20260915_usar_data_api.sql). Os scripts:
+Antes do primeiro uso, execute [adiantamento_meta.sql](../../sql/adiantamento_meta.sql), [budget_anual.sql](../../sql/budget_anual.sql), [vendas_quadrimestre.sql](../../sql/vendas_quadrimestre.sql), [clientes_novos.sql](../../sql/clientes_novos.sql), [clientes_reativados.sql](../../sql/clientes_reativados.sql) e [mix_produtos.sql](../../sql/mix_produtos.sql) no SQL Editor do Supabase. Em um projeto que já recebeu a versão anterior do adiantamento, execute também [20260915_usar_data_api.sql](../../sql/migrations/20260915_usar_data_api.sql). Os scripts:
 
 - mantém as tabelas de adiantamento e histórico sem acesso direto pela API;
 - cria uma função de leitura para usuários autenticados;
 - cria uma função de gravação que confere no JWT se a conta é Laís ou Leonardo;
-- cria funções de consulta para Venda no Quadrimestre, clientes novos, clientes reativados e expansão de mix;
+- cria funções de consulta para Budget Anual, Venda no Quadrimestre, clientes novos, clientes reativados e expansão de mix;
 - valida competência, região, tipos, versões e histórico dentro do banco.
 
 As funções ficam no schema `public`, já atendido pela Data API padrão, e acessam internamente as tabelas de `comercial_marts`. Não é preciso expor o schema `comercial_marts` nas configurações da API.
 
 Quando uma atualização alterar as colunas retornadas por uma função, execute novamente o arquivo SQL correspondente. Os scripts notificam o PostgREST para recarregar o cache de schema após a transação. Se a Data API ainda recusar uma consulta, a mensagem do painel informa o código e a descrição enviados pelo Supabase para orientar o diagnóstico.
 
-As quatro consultas analíticas recebem um limite próprio de 60 segundos, o máximo configurável para chamadas da Client API. Em uma instalação que já possua as três funções de clientes, [20260915_ampliar_timeout_data_api.sql](../../sql/migrations/20260915_ampliar_timeout_data_api.sql) aplica esse ajuste nelas; `vendas_quadrimestre.sql` já cria a nova função com o mesmo limite.
+As cinco consultas analíticas recebem um limite próprio de 60 segundos, o máximo configurável para chamadas da Client API. Em uma instalação que já possua as três funções de clientes, [20260915_ampliar_timeout_data_api.sql](../../sql/migrations/20260915_ampliar_timeout_data_api.sql) aplica esse ajuste nelas; os SQLs de vendas e budget já criam as novas funções com o mesmo limite.
 
 ## 6. Publicar e validar
 

@@ -2,7 +2,7 @@
 
 Painel implementado no padrão visual do Gestão Comercial, com navegação lateral e seis páginas:
 
-- **Visão geral:** metas publicadas da campanha, regiões participantes, fases confirmadas, XP regional de adiantamento, cobertura por fase e detalhamento regional.
+- **Visão geral:** gráfico do realizado elegível de 2026 contra o budget anual de R$ 119 milhões e tabela com os cinco indicadores de XP e o total por região.
 - **Venda no Quadrimestre:** realizado elegível acumulado desde setembro contra as metas regionais disponíveis, usando a meta proporcional do mês atual para calcular o atingimento e o XP por região.
 - **Clientes novos:** resumo por região e detalhamento por vendedor, com duas linhas para triangulações e o XP atribuído a cada participante.
 - **Clientes reativados:** resumo por região e detalhamento por vendedor dos retornos após 6 meses em Canais ou 12 meses em Construção.
@@ -16,7 +16,7 @@ O login usa e-mail e senha do Supabase Authentication. Qualquer conta válida ca
 ## Configuração e execução
 
 1. Instale as dependências: `python -m pip install -r requirements.txt`.
-2. Execute [sql/adiantamento_meta.sql](sql/adiantamento_meta.sql), [sql/vendas_quadrimestre.sql](sql/vendas_quadrimestre.sql), [sql/clientes_novos.sql](sql/clientes_novos.sql), [sql/clientes_reativados.sql](sql/clientes_reativados.sql) e [sql/mix_produtos.sql](sql/mix_produtos.sql) no SQL Editor do Supabase. Eles habilitam o adiantamento e as consultas autenticadas do painel. Em uma instalação que recebeu a versão anterior do adiantamento, execute [20260915_usar_data_api.sql](sql/migrations/20260915_usar_data_api.sql) antes dos SQLs de clientes.
+2. Execute [sql/adiantamento_meta.sql](sql/adiantamento_meta.sql), [sql/budget_anual.sql](sql/budget_anual.sql), [sql/vendas_quadrimestre.sql](sql/vendas_quadrimestre.sql), [sql/clientes_novos.sql](sql/clientes_novos.sql), [sql/clientes_reativados.sql](sql/clientes_reativados.sql) e [sql/mix_produtos.sql](sql/mix_produtos.sql) no SQL Editor do Supabase. Eles habilitam o adiantamento e as consultas autenticadas do painel. Em uma instalação que recebeu a versão anterior do adiantamento, execute [20260915_usar_data_api.sql](sql/migrations/20260915_usar_data_api.sql) antes dos SQLs de clientes.
 3. Copie [.streamlit/secrets.example.toml](.streamlit/secrets.example.toml) para `.streamlit/secrets.toml` e configure somente `SUPABASE_URL` e `SUPABASE_PUBLISHABLE_KEY`. Nunca use `service_role` ou `sb_secret_...`.
 4. Inicie: `python -m streamlit run app.py`.
 

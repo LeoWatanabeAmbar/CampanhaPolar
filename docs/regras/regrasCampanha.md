@@ -171,6 +171,6 @@ Exemplo: 12 grupos comerciais novos elegíveis integralmente atribuídos ao mesm
 | De 90% a 94,99% | Somente Diamante recebe R$ 1.000,00 e Polar recebe R$ 2.000,00 |
 | Igual ou superior a 95% | Prêmio correspondente ao nível atingido |
 
-- Como calcular o percentual do Budget e tratar arredondamentos: [PREENCHER]
-- Durante a campanha, usar realizado anual até a data, projeção ou outro indicador: [PREENCHER]
+- Cálculo implementado em 16/09/2026: `100 * venda bruta elegível acumulada de 2026 / 119000000`, preservando a precisão no cálculo e arredondando somente a exibição.
+- Durante a campanha, usar o realizado anual até a data, sem projeção.
 - Responsável por confirmar a regra final: [PREENCHER]
