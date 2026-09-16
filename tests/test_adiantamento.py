@@ -9,6 +9,7 @@ from streamlit.testing.v1 import AppTest
 
 from polar.adiantamento import (
     CAMPAIGN_MONTHS,
+    EDITOR_EMAILS,
     LOAD_FUNCTION,
     SAVE_CAMPAIGN_FUNCTION,
     SAVE_FUNCTION,
@@ -22,6 +23,10 @@ from polar.adiantamento import (
 MONTH = date(2026, 9, 1)
 EDITOR = Identity("lais.vendrasco@ambar.tech", "user-lais")
 LEONARDO = Identity("leonardo.watanabe@ambar.tech", "user-leonardo")
+JORGE = Identity("jorge.castro@ambar.tech", "user-jorge")
+ANYELLE = Identity("anyelle.santos@ambar.tech", "user-anyelle")
+LUIS = Identity("luis.oliveira@ambar.tech", "user-luis")
+EDITORS = (EDITOR, LEONARDO, JORGE, ANYELLE, LUIS)
 READER = Identity("leitor@ambar.tech", "user-leitor")
 
 
@@ -145,7 +150,11 @@ def test_authorization_rejects_reader_before_data_api_access(repository, api):
     assert api.calls == []
 
 
-@pytest.mark.parametrize("editor", [EDITOR, LEONARDO])
+def test_editor_allowlist_contains_all_authorized_accounts():
+    assert EDITOR_EMAILS == tuple(editor.email for editor in EDITORS)
+
+
+@pytest.mark.parametrize("editor", EDITORS)
 def test_identity_uses_validated_supabase_user(editor):
     identity = Identity.from_authenticated_user({
         "id": editor.user_id,
@@ -157,7 +166,7 @@ def test_identity_uses_validated_supabase_user(editor):
         Identity.from_authenticated_user({"id": "", "email": editor.email})
 
 
-@pytest.mark.parametrize("editor", [EDITOR, LEONARDO])
+@pytest.mark.parametrize("editor", EDITORS)
 def test_saves_independent_checks_and_loads_through_rpc(repository, api, editor):
     row = dict(blank_record("REG 01"), semana_2_56=True, observacao="Conferência manual")
     assert repository.save(MONTH, [row], editor) == 1
@@ -243,6 +252,20 @@ def test_sql_secures_rpc_and_filters_goal_regions():
     assert "from public, anon" in sql
     assert "upper(trim(m.time)) in ('canais', 'time norte', 'time sul')" in sql
     assert "(select auth.jwt()) ->> 'email'" in sql
+    for email in EDITOR_EMAILS:
+        assert email in sql
+
+
+def test_editor_migration_updates_constraints_and_server_authorization():
+    sql = Path(
+        "sql/migrations/20260916_adicionar_editores_adiantamento.sql"
+    ).read_text(encoding="utf-8").lower()
+
+    assert "create or replace function public.campanha_polar_salvar_adiantamento" in sql
+    assert "drop constraint if exists campanha_polar_adiantamento_atualizado_por_check" in sql
+    assert "drop constraint if exists campanha_polar_adiantamento_historico_alterado_por_check" in sql
+    for email in EDITOR_EMAILS:
+        assert email in sql
 
 
 def ui_runner():
@@ -270,7 +293,7 @@ def test_viewer_ui_has_no_save_button(repository):
     assert len(app.dataframe) == 1
 
 
-@pytest.mark.parametrize("editor", [EDITOR, LEONARDO])
+@pytest.mark.parametrize("editor", EDITORS)
 def test_editor_saves_form_and_reader_can_load_same_records(repository, editor):
     app = make_ui(repository, editor)
     assert not app.exception

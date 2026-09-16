@@ -13,7 +13,7 @@ A tela está implementada em [app.py](../../app.py). Ela não possui filtro de c
 | Região fictícia A | Marcado | Marcado | Desmarcado | Desmarcado | … | Desmarcado |
 | Região fictícia B | Marcado | Desmarcado | Desmarcado | Desmarcado | … | Desmarcado |
 
-- **Somente `lais.vendrasco@ambar.tech` e `leonardo.watanabe@ambar.tech` podem preencher e salvar.** A identificação vem da sessão revalidada no Supabase Authentication.
+- **As contas `lais.vendrasco@ambar.tech`, `leonardo.watanabe@ambar.tech`, `jorge.castro@ambar.tech`, `anyelle.santos@ambar.tech` e `luis.oliveira@ambar.tech` podem preencher e salvar.** A identificação vem da sessão revalidada no Supabase Authentication.
 - Os demais usuários válidos cadastrados em `auth.users` visualizam os registros e suas últimas atualizações, sem edição.
 - A autorização é verificada pela função SQL em cada gravação, usando e-mail e ID extraídos do JWT; esconder o botão não é o único controle.
 - O botão **Salvar alterações** grava os checks das quatro competências pela Data API do Supabase em uma única transação. O modelo do banco continua mantendo registros mensais independentes.
@@ -63,10 +63,10 @@ Para a apuração corrente, usar os checks confirmados da versão atual salva: `
 
 Exemplo: uma região com dois vendedores e os três checks confirmados em setembro gera **30 XP regionais**. Se confirmar duas fases em outubro, acrescenta 20 XP e passa a 50 XP regionais na campanha.
 
-A tela registra as confirmações por região e mês e exibe o XP regional correspondente: quantidade de checks `true` multiplicada por 10, limitada naturalmente às três fases do mês. A visão geral apresenta o total mensal e o detalhamento por região. A apuração usa sempre a versão atual salva e reflete correções feitas pelas contas autorizadas, preservando o histórico das versões anteriores. A integração com o total completo da campanha e a apuração própria dos XP de vendas ainda serão adicionadas; as regras de vendas estão em [Dados de metas](dadoMeta.md).
+A tela registra as confirmações por região e mês e exibe o XP regional correspondente: quantidade de checks `true` multiplicada por 10, limitada naturalmente às três fases do mês. A Visão geral e a Análise individual integram esse valor ao XP total da região. A apuração usa sempre a versão atual salva e reflete correções feitas pelas contas autorizadas, preservando o histórico das versões anteriores. As regras de vendas estão em [Dados de metas](dadoMeta.md).
 
 ## Situação de implantação
 
-Código funcional, autorização e salvamento pela Data API implementados e testados localmente. O SQL de criação está em [sql/adiantamento_meta.sql](../../sql/adiantamento_meta.sql), e a migração para uma instalação anterior está em [20260915_usar_data_api.sql](../../sql/migrations/20260915_usar_data_api.sql). O SQL ainda precisa ser executado no projeto Supabase.
+Código funcional, autorização e salvamento pela Data API implementados e testados localmente. O SQL de criação está em [sql/adiantamento_meta.sql](../../sql/adiantamento_meta.sql). Instalações existentes devem executar [20260916_adicionar_editores_adiantamento.sql](../../sql/migrations/20260916_adicionar_editores_adiantamento.sql) para ampliar a permissão sem perder os registros.
 
 A preparação do Supabase e a configuração do login estão no [README do projeto](../../README.md). Os testes exercitam login, renovação da sessão, chamadas RPC, salvamento, leitura por outros usuários, independência das fases/meses, correções, histórico e conflitos. O projeto real ainda exige os dois secrets públicos e a execução do SQL.

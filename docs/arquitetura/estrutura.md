@@ -47,7 +47,7 @@ A [tabela derivada de enquadramento](../dados/dadoEnquadramento.md), proposta em
 - Onde o painel será executado: computador local, servidor interno ou outro ambiente: [PREENCHER]
 - Número aproximado de usuários: [PREENCHER]
 - Login do painel: **confirmado pelo usuário em 15/09/2026**, e-mail e senha do Supabase Authentication, usando as contas cadastradas em `auth.users`. O aplicativo autentica pela API oficial e não consulta diretamente o schema `auth`.
-- Permissões do adiantamento, confirmadas pelo usuário: `lais.vendrasco@ambar.tech` e `leonardo.watanabe@ambar.tech` editam e salvam; os demais usuários autenticados consultam. O servidor revalida a sessão, e a função SQL confere a permissão diretamente no JWT em cada gravação. Demais permissões do futuro painel a definir.
+- Permissões do adiantamento, ampliadas em 16/09/2026: `lais.vendrasco@ambar.tech`, `leonardo.watanabe@ambar.tech`, `jorge.castro@ambar.tech`, `anyelle.santos@ambar.tech` e `luis.oliveira@ambar.tech` editam e salvam; os demais usuários autenticados consultam. O servidor revalida a sessão, e a função SQL confere a permissão diretamente no JWT em cada gravação.
 - Uso principal em computador, celular ou ambos: [PREENCHER]
 - Há restrições para armazenamento ou exibição dos dados: [PREENCHER]
 
@@ -63,7 +63,7 @@ Descreva as telas desejadas em linguagem simples. Exemplos possíveis: visão ge
 | Clientes novos | Resumo de quantidade, lista e XP por região; detalhe de data, grupo, pedidos, vendedor, região, segmento, atribuição e XP | Usuários autenticados consultam |
 | Clientes reativados | Resumo de quantidade, lista e XP por região; detalhe do retorno por vendedor, com duas linhas para triangulações | Usuários autenticados consultam |
 | Mix de produtos | Resumo das expansões confirmadas por região; detalhe de família, produtos, mínimo, resultado e XP por vendedor | Usuários autenticados consultam |
-| Adiantamento de meta | Uma linha por região e 12 checks: três fases para cada mês de setembro a dezembro | Usuários autenticados consultam; somente `lais.vendrasco@ambar.tech` e `leonardo.watanabe@ambar.tech` salvam |
+| Adiantamento de meta | Uma linha por região e 12 checks: três fases para cada mês de setembro a dezembro | Usuários autenticados consultam; as cinco contas editoras autorizadas salvam |
 
 ## Identidade visual
 

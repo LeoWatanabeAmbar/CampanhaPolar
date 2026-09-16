@@ -8,7 +8,13 @@ from typing import Any
 from httpx import HTTPError
 from postgrest.exceptions import APIError
 
-EDITOR_EMAILS = ("lais.vendrasco@ambar.tech", "leonardo.watanabe@ambar.tech")
+EDITOR_EMAILS = (
+    "lais.vendrasco@ambar.tech",
+    "leonardo.watanabe@ambar.tech",
+    "jorge.castro@ambar.tech",
+    "anyelle.santos@ambar.tech",
+    "luis.oliveira@ambar.tech",
+)
 FIELDS = ("semana_1_32", "semana_2_56", "semana_3_80")
 LOAD_FUNCTION = "campanha_polar_carregar_adiantamento"
 SAVE_FUNCTION = "campanha_polar_salvar_adiantamento"

@@ -12,12 +12,12 @@ Painel implementado no padrão visual do Gestão Comercial, com navegação late
 
 O ícone azul da Polar em [assets/icone_polar.png](assets/icone_polar.png) é usado como favicon da aba do navegador. O logotipo horizontal permanece na interface do painel.
 
-O login usa e-mail e senha do Supabase Authentication. Qualquer conta válida cadastrada em `auth.users` pode consultar o painel. Somente `lais.vendrasco@ambar.tech` e `leonardo.watanabe@ambar.tech` podem preencher e salvar. A sessão é revalidada no Supabase e o mesmo JWT acessa funções restritas da Data API.
+O login usa e-mail e senha do Supabase Authentication. Qualquer conta válida cadastrada em `auth.users` pode consultar o painel. As contas `lais.vendrasco@ambar.tech`, `leonardo.watanabe@ambar.tech`, `jorge.castro@ambar.tech`, `anyelle.santos@ambar.tech` e `luis.oliveira@ambar.tech` podem preencher e salvar. A sessão é revalidada no Supabase e o mesmo JWT acessa funções restritas da Data API.
 
 ## Configuração e execução
 
 1. Instale as dependências: `python -m pip install -r requirements.txt`.
-2. Execute [sql/adiantamento_meta.sql](sql/adiantamento_meta.sql), [sql/budget_anual.sql](sql/budget_anual.sql), [sql/vendas_quadrimestre.sql](sql/vendas_quadrimestre.sql), [sql/clientes_novos.sql](sql/clientes_novos.sql), [sql/clientes_reativados.sql](sql/clientes_reativados.sql) e [sql/mix_produtos.sql](sql/mix_produtos.sql) no SQL Editor do Supabase. Eles habilitam o adiantamento e as consultas autenticadas do painel. Em uma instalação que recebeu a versão anterior do adiantamento, execute [20260915_usar_data_api.sql](sql/migrations/20260915_usar_data_api.sql) antes dos SQLs de clientes.
+2. Execute [sql/adiantamento_meta.sql](sql/adiantamento_meta.sql), [sql/budget_anual.sql](sql/budget_anual.sql), [sql/vendas_quadrimestre.sql](sql/vendas_quadrimestre.sql), [sql/clientes_novos.sql](sql/clientes_novos.sql), [sql/clientes_reativados.sql](sql/clientes_reativados.sql) e [sql/mix_produtos.sql](sql/mix_produtos.sql) no SQL Editor do Supabase. Eles habilitam o adiantamento e as consultas autenticadas do painel. Em uma instalação que recebeu a versão anterior do adiantamento, execute [20260916_adicionar_editores_adiantamento.sql](sql/migrations/20260916_adicionar_editores_adiantamento.sql) para liberar as cinco contas editoras.
 3. Copie [.streamlit/secrets.example.toml](.streamlit/secrets.example.toml) para `.streamlit/secrets.toml` e configure somente `SUPABASE_URL` e `SUPABASE_PUBLISHABLE_KEY`. Nunca use `service_role` ou `sb_secret_...`.
 4. Inicie: `python -m streamlit run app.py`.
 
