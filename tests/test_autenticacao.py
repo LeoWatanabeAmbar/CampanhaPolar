@@ -2,6 +2,7 @@ from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 import pytest
+from streamlit.testing.v1 import AppTest
 from supabase_auth.errors import AuthApiError
 
 from polar.autenticacao import SupabaseAuthenticator, is_privileged_key
@@ -78,3 +79,22 @@ def test_sign_out_revokes_only_current_session(authenticator):
         })
 
     client.auth.sign_out.assert_called_once_with({"scope": "local"})
+
+
+def login_runner():
+    import streamlit as st
+    from app import render_login
+
+    render_login(st.session_state["authenticator"])
+
+
+def test_login_shows_one_logo_and_omits_restricted_access_caption():
+    app = AppTest.from_function(login_runner)
+    app.session_state["authenticator"] = SimpleNamespace()
+    app.run(timeout=15)
+
+    assert not app.exception
+    assert len(app.get("image")) == 1
+    assert all(
+        "O acesso é restrito" not in caption.value for caption in app.caption
+    )

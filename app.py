@@ -738,7 +738,6 @@ def render_login(authenticator: SupabaseAuthenticator):
             else:
                 st.session_state["supabase_auth_session"] = session
                 st.rerun()
-    st.caption("O acesso é restrito aos usuários cadastrados no Supabase Authentication.")
 
 
 def render_sidebar(
@@ -1507,8 +1506,6 @@ def main():
     """Inicializa identidade visual, autenticação e navegação do painel."""
     page_icon = str(PAGE_ICON_PATH) if PAGE_ICON_PATH.is_file() else "❄️"
     st.set_page_config(page_title="Campanha Polar", page_icon=page_icon, layout="wide")
-    if LOGO_PATH.is_file():
-        st.logo(str(LOGO_PATH), size="large")
     apply_polar_style()
     authenticator = configuration()
     if "supabase_auth_session" not in st.session_state:
@@ -1522,6 +1519,8 @@ def main():
         render_login(authenticator)
         st.stop()
 
+    if LOGO_PATH.is_file():
+        st.logo(str(LOGO_PATH), size="large")
     panel_reference = datetime.now(ZoneInfo("America/Sao_Paulo")).date()
     page = render_sidebar(identity, authenticator, panel_reference)
     try:
