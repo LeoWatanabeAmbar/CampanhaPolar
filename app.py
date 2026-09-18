@@ -1,4 +1,11 @@
-"""Painel Streamlit da campanha Polar."""
+"""Interface web da campanha XP Polar.
+
+Este módulo é deliberadamente responsável apenas pela composição da interface e
+pelas consolidações que precisam acontecer depois das consultas. Regras pesadas
+de elegibilidade vivem nas funções SQL; autenticação e contratos da Data API
+ficam nos módulos de ``polar``. Essa separação evita reproduzir regras de negócio
+em cada página do Streamlit.
+"""
 from __future__ import annotations
 
 from datetime import date, datetime
@@ -26,6 +33,8 @@ from polar.clientes_reativados import ReactivatedCustomersRepository
 from polar.mix_produtos import ProductMixRepository
 from polar.vendas import SalesRepository, calculate_cumulative_region_results
 
+# A campanha é fixa em 2026. Estes rótulos são somente de apresentação; a
+# validação das competências fica centralizada em polar.adiantamento.
 MONTHS = {9: "Setembro", 10: "Outubro", 11: "Novembro", 12: "Dezembro"}
 MONTH_ABBREVIATIONS = {9: "Set", 10: "Out", 11: "Nov", 12: "Dez"}
 ADVANCE_SUFFIXES = {
@@ -40,6 +49,7 @@ LABELS = {
     "semana_3_80": "3ª semana · 80%",
     "observacao": "Observações",
 }
+# Tokens visuais compartilhados pelo CSS injetado e pelos gráficos nativos.
 POLAR_BLUE = "#0072D6"
 POLAR_BLUE_DARK = "#005DAD"
 POLAR_BLUE_SOFT = "#E8F3FC"
@@ -51,6 +61,8 @@ PAGE_ICON_PATH = Path(__file__).resolve().parent / "assets" / "icone_polar.png"
 
 def apply_polar_style():
     """Replica a identidade visual usada no Gestão Comercial."""
+    # O Streamlit não oferece todos esses ajustes via config.toml. O CSS fica
+    # concentrado aqui para não espalhar estilos pelas funções de página.
     st.markdown(
         f"""
         <style>
@@ -238,6 +250,9 @@ def format_percentage_br(value: float) -> str:
 
 def campaign_classification(xp: float) -> str:
     """Traduz o XP acumulado para a faixa de classificação da campanha."""
+    # Os limites superiores são inclusivos conforme o regulamento. Na prática,
+    # os eventos atuais geram XP inteiro, mas a função aceita float para manter o
+    # contrato das consolidações com pandas.
     if xp < 370:
         return "Sem classificação"
     if xp <= 500:
@@ -254,6 +269,8 @@ def campaign_classification(xp: float) -> str:
 def build_budget_card_html(budget: dict) -> str:
     """Monta o cartão visual do budget sem interpretar `R$` como Markdown."""
     attainment = float(budget["atingimento_pct"])
+    # O percentual textual pode superar 100% ou ficar negativo. Somente a barra
+    # é limitada ao intervalo visual válido para não quebrar o layout.
     bar_width = min(max(attainment, 0.0), 100.0)
     reference = date.fromisoformat(str(budget["data_referencia"]))
     return f"""
@@ -292,6 +309,9 @@ def indicator_xp_by_region(rows: list[dict], seller_cap: float | None = None) ->
                 totals[region] = totals.get(region, 0.0) + float(row.get("xp") or 0)
         return totals
 
+    # Novos e reativados têm teto individual. Primeiro acumulamos por vendedor
+    # e região e só depois somamos os valores limitados na região. Isso preserva
+    # o teto de cada participante em eventos divididos 50/50.
     seller_totals: dict[tuple[str, str], float] = {}
     for row in rows:
         region = str(row.get("regiao") or "").strip()
@@ -313,6 +333,8 @@ def build_xp_overview_frame(
     sales_results: list[dict],
 ) -> pd.DataFrame:
     """Consolida os cinco indicadores no grão regional."""
+    # Adiantamento e vendas já pertencem à região. Novos, reativados e mix são
+    # eventos de vendedores que precisam ser agregados para a visão regional.
     advancement_xp: dict[str, float] = {}
     regions: set[str] = set()
     for rows in advancement_by_month.values():
@@ -338,6 +360,8 @@ def build_xp_overview_frame(
     regions.update(mix_xp)
     regions.update(sales_xp)
 
+    # A união das chaves impede que uma região desapareça apenas porque ainda
+    # não pontuou em um dos indicadores.
     records = []
     for region in sorted(regions):
         values = {
@@ -584,6 +608,8 @@ def build_reactivated_customers_region_summary(frame: pd.DataFrame) -> pd.DataFr
 
 def build_product_mix_region_summary(frame: pd.DataFrame) -> pd.DataFrame:
     """Resume as expansões de mix confirmadas por região."""
+    # Ao contrário de novos/reativados, o resumo de mix mostra apenas eventos
+    # efetivamente pontuados; os demais permanecem disponíveis no detalhe.
     confirmed = frame[(frame["xp"] > 0) & frame["regiao"].astype(str).str.strip().ne("")]
     columns = [
         "Região", "Quantidade de expansões", "Lista das expansões", "Total XP",
@@ -663,6 +689,8 @@ def render_region_summary_table(summary: pd.DataFrame, list_column: str):
 
 def format_sales_orders(value: object) -> str:
     """Oculta a filial padrão na exibição e preserva pedidos de outras filiais."""
+    # A transformação é apenas visual. A chave técnica no banco continua sendo
+    # filial + pedido, inclusive para evitar colisão entre filiais.
     return str(value or "").replace("01101/", "")
 
 
@@ -689,6 +717,8 @@ def configuration():
         publishable_key = str(st.secrets["SUPABASE_PUBLISHABLE_KEY"])
         return SupabaseAuthenticator(supabase_url, publishable_key)
     except (KeyError, FileNotFoundError, ValueError):
+        # Interromper aqui é mais seguro que abrir o painel parcialmente ou
+        # tentar operar com uma credencial administrativa indevida.
         render_page_header(
             "Campanha Polar",
             "O painel está pronto para receber a conexão segura com os dados comerciais.",
@@ -703,6 +733,8 @@ def current_identity(authenticator: SupabaseAuthenticator):
     saved_session = st.session_state.get("supabase_auth_session")
     if not isinstance(saved_session, dict):
         raise PermissionDenied("Faça login para acessar o painel.")
+    # A identidade nunca é confiada apenas ao session_state: o Supabase valida
+    # os tokens e devolve os tokens renovados antes de qualquer consulta.
     refreshed_session, client = authenticator.authenticated_client(saved_session)
     st.session_state["supabase_auth_session"] = refreshed_session
     return Identity.from_authenticated_user(refreshed_session), client
@@ -803,6 +835,8 @@ def render_overview(
     st.subheader("Atingimento do budget anual de vendas")
     st.markdown(build_budget_card_html(budget), unsafe_allow_html=True)
 
+    # Cada fonte é recalculada pela situação corrente. Não há fotografia local
+    # persistida do ranking, portanto correções retroativas aparecem no rerun.
     advancement_by_month = advancement_repository.load_campaign()
     rows_by_month = sales_repository.load_through(reference)
     available_sales = {month: rows for month, rows in rows_by_month.items() if rows}
@@ -849,6 +883,8 @@ def render_individual_analysis(
         "Selecione uma região para conferir seu XP e todos os resultados da campanha.",
     )
 
+    # A página usa exatamente as mesmas fontes e consolidação da Visão geral;
+    # isso evita divergência entre o ranking e o detalhe selecionado.
     advancement_by_month = advancement_repository.load_campaign()
     new_customers = new_customers_repository.load()
     reactivated_customers = reactivated_customers_repository.load()
@@ -1024,6 +1060,8 @@ def render_quadrimester_sales(repository: SalesRepository, reference: date | Non
     reference = reference or datetime.now(ZoneInfo("America/Sao_Paulo")).date()
     rows_by_month = repository.load_through(reference)
     requested_month = max(rows_by_month)
+    # Metas futuras não são estimadas. Meses sem linhas são removidos e a tela
+    # informa que o acumulado termina na última competência publicada.
     available_rows = {month: rows for month, rows in rows_by_month.items() if rows}
     current_month = max(available_rows) if available_rows else requested_month
     render_page_header(
@@ -1360,6 +1398,8 @@ def advance_label(month: date, field: str) -> str:
 
 def build_advancement_frame(month_rows: dict[date, list[dict]]) -> pd.DataFrame:
     """Transforma registros mensais em uma linha única por região."""
+    # A API trabalha no grão região/mês; a tela pivota quatro meses e três fases
+    # para oferecer os 12 checks em uma única linha por região.
     regions = sorted({row["regiao"] for rows in month_rows.values() for row in rows})
     records = []
     for region in regions:
@@ -1375,6 +1415,8 @@ def build_advancement_frame(month_rows: dict[date, list[dict]]) -> pd.DataFrame:
 def render_table(repository: Repository, identity: Identity, recheck_identity):
     """Renderiza os quatro meses em uma única tabela por região."""
     scope = f"campaign:{identity.user_id}"
+    # O escopo inclui o ID do usuário para impedir que dados carregados por uma
+    # sessão sejam reutilizados depois de uma troca de conta no mesmo navegador.
     if st.session_state.get("advance_scope") != scope:
         st.session_state["advance_month_rows"] = repository.load_campaign()
         st.session_state["advance_scope"] = scope
@@ -1431,6 +1473,8 @@ def render_table(repository: Repository, identity: Identity, recheck_identity):
             )
             submitted = st.form_submit_button("Salvar alterações", type="primary", width="stretch")
         if submitted:
+            # A identidade é conferida novamente imediatamente antes da escrita.
+            # O banco ainda repetirá a autorização com o JWT da própria chamada.
             current, _ = recheck_identity()
             if current.user_id != identity.user_id:
                 raise PermissionDenied("A conta conectada mudou. Recarregue a página.")
@@ -1514,6 +1558,8 @@ def main():
     if "supabase_auth_session" not in st.session_state:
         render_login(authenticator)
         st.stop()
+    # A autenticação delimita todo o restante da aplicação. Nenhum repositório
+    # de dados é criado antes de uma sessão válida.
     try:
         identity, data_client = current_identity(authenticator)
     except (PermissionDenied, AuthenticationServiceError):
@@ -1525,6 +1571,8 @@ def main():
     if LOGO_PATH.is_file():
         st.logo(str(LOGO_PATH), size="large")
     panel_reference = datetime.now(ZoneInfo("America/Sao_Paulo")).date()
+    # Erros esperados de negócio são apresentados como aviso; indisponibilidade
+    # ou quebra do contrato de dados aparece como erro operacional.
     try:
         panel_updated_at = DataRefreshRepository(data_client).load()
     except DataAccessError:

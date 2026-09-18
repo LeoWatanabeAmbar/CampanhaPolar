@@ -1,4 +1,4 @@
-"""Consulta do último refresh concluído pelo dataflow comercial."""
+"""Consulta e normalização do marcador de refresh do dataflow comercial."""
 from __future__ import annotations
 
 from datetime import datetime
@@ -11,6 +11,8 @@ from postgrest.exceptions import APIError
 from polar.adiantamento import DataAccessError, data_api_rejection_message
 
 REFRESH_TABLE = "cpv_refresh_controle"
+# Duas chaves são aceitas porque o processo de carga mudou de nome ao longo da
+# evolução da plataforma. A linha mais recentemente atualizada prevalece.
 REFRESH_KEYS = ("dataflow_cpv_public", "totvs_supabase")
 SAO_PAULO = ZoneInfo("America/Sao_Paulo")
 
@@ -27,6 +29,8 @@ def parse_refresh_datetime(value: object) -> datetime | None:
     else:
         return None
 
+    # Timestamps sem timezone são tratados como UTC para evitar dependência do
+    # fuso configurado na máquina que executa o Streamlit.
     if parsed.tzinfo is None:
         parsed = parsed.replace(tzinfo=ZoneInfo("UTC"))
     return parsed.astimezone(SAO_PAULO)
@@ -61,4 +65,6 @@ class DataRefreshRepository:
         if not isinstance(data, list) or not data or not isinstance(data[0], dict):
             return None
         row = data[0]
+        # finalizado_em representa a conclusão real; atualizado_em é fallback
+        # para cargas antigas que ainda não preenchiam o campo de finalização.
         return parse_refresh_datetime(row.get("finalizado_em") or row.get("atualizado_em"))

@@ -1,5 +1,7 @@
 -- Amplia as contas autorizadas a editar o adiantamento sem perder os registros existentes.
 -- Execute uma vez no SQL Editor do Supabase em instalações já configuradas.
+-- Atualiza três pontos inseparáveis: constraints do estado/histórico e a
+-- allowlist da função de escrita. A autorização continua baseada no JWT.
 begin;
 
 alter table comercial_marts.campanha_polar_adiantamento
@@ -14,6 +16,8 @@ alter table comercial_marts.campanha_polar_adiantamento_historico
     add constraint campanha_polar_adiantamento_historico_alterado_por_check
     check (alterado_por in ('lais.vendrasco@ambar.tech', 'leonardo.watanabe@ambar.tech', 'jorge.castro@ambar.tech', 'anyelle.santos@ambar.tech', 'luis.oliveira@ambar.tech'));
 
+-- Recriar o corpo garante que chamadas diretas à Data API respeitem a mesma
+-- lista de editores exibida pelo Streamlit.
 create or replace function public.campanha_polar_salvar_adiantamento(
     p_competencia date,
     p_registros jsonb

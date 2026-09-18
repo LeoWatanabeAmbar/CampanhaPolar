@@ -1,4 +1,9 @@
-"""Autenticação do painel com usuários cadastrados no Supabase Auth."""
+"""Fronteira de autenticação do painel com o Supabase Auth.
+
+O módulo nunca consulta ``auth.users`` diretamente e nunca mantém uma senha. Ele
+cria um cliente isolado por operação, valida a sessão remotamente e entrega ao
+restante da aplicação somente identidade e tokens necessários à Data API.
+"""
 from __future__ import annotations
 
 import base64
@@ -19,6 +24,9 @@ def is_privileged_key(key: str) -> bool:
     """Impede o uso acidental de service role ou secret key no login."""
     if key.startswith("sb_secret_"):
         return True
+    # Chaves JWT legadas têm três partes. A inspeção local serve somente para
+    # bloquear service_role; a assinatura continua sendo responsabilidade do
+    # Supabase e não é validada neste cliente.
     parts = key.split(".")
     if len(parts) != 3:
         return False
@@ -48,6 +56,8 @@ class SupabaseAuthenticator:
         object.__setattr__(self, "publishable_key", key)
 
     def _client(self):
+        # Persistência e auto-refresh ficam desligados porque o Streamlit guarda
+        # a sessão explicitamente por navegador em st.session_state.
         return create_client(
             self.url,
             self.publishable_key,
@@ -60,6 +70,8 @@ class SupabaseAuthenticator:
             raise AuthenticationServiceError("A conta autenticada não possui identificação completa.")
         if getattr(user, "is_anonymous", False):
             raise AuthenticationServiceError("Contas anônimas não podem acessar o painel.")
+        # Não devolver metadados extras reduz a superfície de dados sensíveis no
+        # estado da aplicação e estabiliza o contrato interno.
         return {
             "id": str(user.id),
             "email": str(user.email).strip().lower(),
@@ -91,6 +103,8 @@ class SupabaseAuthenticator:
         """Revalida a sessão e devolve um cliente apto a chamar a Data API."""
         try:
             client = self._client()
+            # set_session pode renovar tokens; get_user força validação no
+            # servidor antes de a identidade ser usada para autorização.
             response = client.auth.set_session(
                 saved_session["access_token"],
                 saved_session["refresh_token"],

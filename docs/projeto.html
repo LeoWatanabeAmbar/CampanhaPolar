@@ -1,0 +1,506 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Documentação executiva e técnica do projeto Campanha Polar">
+  <title>Campanha Polar — documentação do projeto</title>
+  <style>
+    :root {
+      --blue: #0072d6;
+      --blue-dark: #005dad;
+      --blue-soft: #e8f3fc;
+      --ink: #17233a;
+      --muted: #5c6f86;
+      --border: #dce8f4;
+      --surface: #ffffff;
+      --surface-alt: #f4f8fc;
+      --warning: #9a6700;
+      --warning-bg: #fff8c5;
+      --danger: #b42318;
+      --danger-bg: #fff1f0;
+      --success: #067647;
+      --success-bg: #ecfdf3;
+      --shadow: 0 10px 30px rgba(23, 35, 58, .08);
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--surface-alt);
+      color: var(--ink);
+      font: 16px/1.6 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    a { color: var(--blue-dark); }
+    a:hover { color: var(--blue); }
+    code {
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      background: #f7fbff;
+      padding: .08rem .32rem;
+      font: .9em ui-monospace, SFMono-Regular, Consolas, monospace;
+    }
+    pre {
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #101828;
+      color: #eaf2fb;
+      padding: 1rem;
+    }
+    pre code { border: 0; background: transparent; color: inherit; padding: 0; }
+    .layout { display: grid; grid-template-columns: 280px minmax(0, 1fr); min-height: 100vh; }
+    nav {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      border-right: 1px solid var(--border);
+      background: var(--surface);
+      padding: 1.5rem 1.25rem;
+    }
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: .7rem;
+      margin-bottom: 1.5rem;
+      color: var(--blue-dark);
+      font-size: 1.5rem;
+      font-weight: 850;
+      letter-spacing: .08em;
+    }
+    .brand-mark {
+      display: grid;
+      place-items: center;
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--blue-dark), #35a0f2);
+      color: #fff;
+      font-size: 1.3rem;
+      letter-spacing: 0;
+      box-shadow: 0 5px 14px rgba(0, 114, 214, .22);
+    }
+    nav strong { display: block; margin: 1rem 0 .45rem; color: var(--muted); font-size: .75rem; letter-spacing: .08em; text-transform: uppercase; }
+    nav a { display: block; border-radius: 7px; color: var(--ink); padding: .42rem .55rem; text-decoration: none; }
+    nav a:hover { background: var(--blue-soft); color: var(--blue-dark); }
+    main { width: min(1180px, 100%); padding: 2.5rem 3rem 5rem; }
+    header.hero {
+      overflow: hidden;
+      position: relative;
+      border-radius: 18px;
+      background: linear-gradient(135deg, #005dad, #0072d6 58%, #35a0f2);
+      box-shadow: var(--shadow);
+      color: #fff;
+      margin-bottom: 2rem;
+      padding: 2.6rem;
+    }
+    header.hero::after {
+      position: absolute;
+      right: -70px;
+      bottom: -110px;
+      width: 280px;
+      height: 280px;
+      border: 42px solid rgba(255,255,255,.12);
+      border-radius: 50%;
+      content: "";
+    }
+    .eyebrow { font-size: .78rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+    h1 { max-width: 760px; margin: .5rem 0; font-size: clamp(2.2rem, 5vw, 4rem); line-height: 1.04; letter-spacing: -.045em; }
+    .hero p { max-width: 760px; margin: .8rem 0 0; font-size: 1.08rem; opacity: .94; }
+    h2 { scroll-margin-top: 1rem; border-bottom: 2px solid var(--border); margin: 3rem 0 1.2rem; padding-bottom: .5rem; font-size: 1.7rem; }
+    h3 { margin: 1.7rem 0 .6rem; font-size: 1.18rem; }
+    .lead { color: var(--muted); font-size: 1.08rem; }
+    .grid { display: grid; gap: 1rem; }
+    .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .card {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--surface);
+      box-shadow: 0 2px 8px rgba(23,35,58,.04);
+      padding: 1.1rem 1.2rem;
+    }
+    .card h3 { margin-top: 0; }
+    .metric { border-left: 4px solid var(--blue); }
+    .metric span { display: block; color: var(--muted); font-size: .78rem; font-weight: 700; text-transform: uppercase; }
+    .metric b { display: block; margin-top: .2rem; color: var(--blue-dark); font-size: 1.5rem; }
+    .badge { display: inline-block; border-radius: 999px; padding: .18rem .55rem; font-size: .78rem; font-weight: 750; }
+    .ok { background: var(--success-bg); color: var(--success); }
+    .warn { background: var(--warning-bg); color: var(--warning); }
+    .risk { background: var(--danger-bg); color: var(--danger); }
+    .info { background: var(--blue-soft); color: var(--blue-dark); }
+    .callout { border-left: 5px solid var(--blue); border-radius: 8px; background: var(--blue-soft); margin: 1rem 0; padding: .9rem 1rem; }
+    .callout.warning { border-left-color: var(--warning); background: var(--warning-bg); }
+    .callout.danger { border-left-color: var(--danger); background: var(--danger-bg); }
+    .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+    table { width: 100%; border-collapse: collapse; font-size: .92rem; }
+    th { background: var(--blue); color: #fff; text-align: left; }
+    th, td { border-bottom: 1px solid var(--border); padding: .7rem .8rem; vertical-align: top; }
+    tr:last-child td { border-bottom: 0; }
+    tbody tr:nth-child(even) { background: #f9fcff; }
+    .flow { display: flex; align-items: stretch; gap: .55rem; overflow-x: auto; padding: .5rem 0; }
+    .node { min-width: 155px; border: 1px solid var(--border); border-radius: 10px; background: #fff; padding: .8rem; text-align: center; }
+    .arrow { display: grid; place-items: center; color: var(--blue); font-size: 1.5rem; font-weight: 800; }
+    .tree { white-space: pre; }
+    details { border: 1px solid var(--border); border-radius: 10px; background: #fff; margin: .7rem 0; padding: .2rem .9rem; }
+    summary { cursor: pointer; padding: .7rem 0; font-weight: 750; }
+    footer { border-top: 1px solid var(--border); color: var(--muted); margin-top: 3rem; padding-top: 1.3rem; font-size: .88rem; }
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: 1fr; }
+      nav { position: static; width: auto; height: auto; border-right: 0; border-bottom: 1px solid var(--border); }
+      nav a { display: inline-block; }
+      main { padding: 1.5rem; }
+      .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    }
+    @media print {
+      body { background: #fff; font-size: 11pt; }
+      .layout { display: block; }
+      nav { display: none; }
+      main { width: 100%; padding: 0; }
+      header.hero { box-shadow: none; print-color-adjust: exact; }
+      h2 { break-after: avoid; }
+      .card, table, details { break-inside: avoid; }
+      a { color: inherit; text-decoration: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <nav aria-label="Navegação da documentação">
+      <!-- Marca construída somente com HTML/CSS para manter o arquivo autônomo. -->
+      <div class="brand" aria-label="Polar"><span class="brand-mark" aria-hidden="true">P</span>POLAR</div>
+      <strong>Conteúdo</strong>
+      <a href="#visao">Visão geral</a>
+      <a href="#arquitetura">Arquitetura</a>
+      <a href="#estrutura">Estrutura do código</a>
+      <a href="#regras">Regras de negócio</a>
+      <a href="#indicadores">Cinco indicadores</a>
+      <a href="#budget">Budget e prêmios</a>
+      <a href="#dados">Dados e contratos</a>
+      <a href="#seguranca">Segurança</a>
+      <a href="#telas">Telas</a>
+      <a href="#excecoes">Exceções e riscos</a>
+      <a href="#operacao">Operação e deploy</a>
+      <a href="#testes">Testes e aceite</a>
+      <strong>Arquivo autônomo</strong>
+      <span style="display:block;color:var(--muted);padding:.35rem .55rem;font-size:.82rem">Sem imagens, fontes, scripts ou documentos externos.</span>
+    </nav>
+
+    <main>
+      <header class="hero" id="visao">
+        <div class="eyebrow">Documentação executiva e técnica · 18/09/2026</div>
+        <h1>Campanha Polar</h1>
+        <p>Painel Streamlit para acompanhar vendas, clientes novos, reativações, expansão de mix, adiantamento de pedidos, XP regional e o Budget Anual de 2026.</p>
+      </header>
+
+      <section aria-labelledby="resumo-titulo">
+        <h2 id="resumo-titulo">Visão geral do projeto</h2>
+        <p class="lead">A aplicação consulta o Supabase com a identidade do usuário, executa regras analíticas em funções PostgreSQL e consolida os cinco indicadores nas páginas do Streamlit.</p>
+        <div class="grid grid-3">
+          <div class="card metric"><span>Período</span><b>Set–Dez/2026</b>Histórico analítico desde janeiro de 2022.</div>
+          <div class="card metric"><span>Budget anual</span><b>R$ 119 milhões</b>Vendas elegíveis de 2026 menos devoluções de 2026.</div>
+          <div class="card metric"><span>Validação local</span><b>106 testes</b>Testes unitários, contratos SQL e interface Streamlit.</div>
+        </div>
+        <div class="callout warning"><strong>Limite desta documentação:</strong> ela descreve o repositório. A instalação efetiva das funções e os resultados do Supabase de produção precisam ser verificados no ambiente publicado.</div>
+      </section>
+
+      <section id="arquitetura">
+        <h2>Arquitetura</h2>
+        <div class="flow" aria-label="Fluxo da aplicação">
+          <div class="node"><strong>Usuário</strong><br>E-mail e senha</div><div class="arrow">→</div>
+          <div class="node"><strong>Streamlit</strong><br>Interface e consolidação</div><div class="arrow">→</div>
+          <div class="node"><strong>Supabase Auth</strong><br>Sessão e JWT</div><div class="arrow">→</div>
+          <div class="node"><strong>Data API</strong><br>PostgREST / RPC</div><div class="arrow">→</div>
+          <div class="node"><strong>PostgreSQL</strong><br>Regras e marts</div>
+        </div>
+        <div class="grid grid-2">
+          <article class="card">
+            <h3>Responsabilidade do Python</h3>
+            <ul>
+              <li>autenticar e revalidar a sessão;</li>
+              <li>validar contratos retornados pela Data API;</li>
+              <li>calcular dias úteis, meta parcial e faixas de XP;</li>
+              <li>consolidar indicadores por região;</li>
+              <li>renderizar as sete páginas e tratar erros.</li>
+            </ul>
+          </article>
+          <article class="card">
+            <h3>Responsabilidade do PostgreSQL</h3>
+            <ul>
+              <li>filtrar operações comerciais válidas;</li>
+              <li>tratar inadimplência, faturamento e devoluções;</li>
+              <li>formar eventos diários e sequências históricas;</li>
+              <li>calcular novo, reativado, mix e rateios;</li>
+              <li>autorizar, versionar e auditar adiantamentos.</li>
+            </ul>
+          </article>
+        </div>
+      </section>
+
+      <section id="estrutura">
+        <h2>Como o projeto foi estruturado</h2>
+        <pre class="tree"><code>CampanhaPolar/
+├── app.py                     # interface, páginas e consolidação regional
+├── polar/                     # serviços e contratos Python
+│   ├── autenticacao.py        # Supabase Auth e sessão
+│   ├── atualizacao.py         # marcador de refresh
+│   ├── budget.py              # contrato do budget
+│   ├── vendas.py              # dias úteis, acumulado e XP
+│   ├── clientes_novos.py      # contrato de novos
+│   ├── clientes_reativados.py # contrato de reativados
+│   ├── mix_produtos.py        # contrato de mix
+│   └── adiantamento.py        # permissões e persistência manual
+├── sql/                       # funções e tabelas do Supabase
+│   └── migrations/            # evolução de instalações existentes
+├── tests/                     # 106 testes automatizados
+├── docs/                      # manual, anexos, prévias e este HTML
+└── assets/                    # logotipo e favicon</code></pre>
+
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Camada</th><th>Princípio</th><th>Motivo</th></tr></thead>
+            <tbody>
+              <tr><td>Interface</td><td>Não replica SQL de elegibilidade</td><td>Evita resultados diferentes entre páginas.</td></tr>
+              <tr><td>Adaptadores</td><td>Validam campos e tipos</td><td>Uma RPC desatualizada falha de forma explícita.</td></tr>
+              <tr><td>Banco</td><td>Funções <code>security definer</code></td><td>Usuários consultam resultados sem acesso direto às tabelas.</td></tr>
+              <tr><td>Documentação</td><td>Manual vigente + anexos históricos</td><td>Separa comportamento atual de fotografias antigas.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="regras">
+        <h2>Regras gerais de negócio</h2>
+        <div class="grid grid-2">
+          <article class="card">
+            <h3>Participação</h3>
+            <ul>
+              <li>região com meta positiva na competência;</li>
+              <li>times aceitos: Canais, Time Norte e Time Sul;</li>
+              <li>Time Norte/Sul = Construção; Canais = Canais;</li>
+              <li>sem meta ou meta zero: não participa;</li>
+              <li>admitidos e desligados não têm teto proporcional.</li>
+            </ul>
+          </article>
+          <article class="card">
+            <h3>Venda elegível</h3>
+            <ul>
+              <li>item válido para métricas e venda comercial;</li>
+              <li>exclui bonificação, remessa e transferência;</li>
+              <li>cancelamento deve estar refletido na fonte;</li>
+              <li>bloqueado participa somente pelo faturado;</li>
+              <li>devoluções reduzem o saldo até o mínimo zero.</li>
+            </ul>
+          </article>
+        </div>
+        <h3>Evento diário e atribuição</h3>
+        <p>Pedidos elegíveis do mesmo grupo comercial e data formam um único evento. Para mix, a família também integra a chave. Um vendedor recebe 100% do XP; exatamente dois recebem 50% cada. Vendedor ausente, três ou mais participantes, segmento divergente ou mapeamento ambíguo deixam o evento pendente e sem XP.</p>
+      </section>
+
+      <section id="indicadores">
+        <h2>Os cinco indicadores</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Indicador</th><th>Regra</th><th>XP</th><th>Teto</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Clientes novos</strong></td><td>Primeiro evento elegível do grupo desde janeiro/2022 deve ocorrer na campanha.</td><td>10 por evento; 5+5 com dois vendedores.</td><td>100 por vendedor.</td></tr>
+              <tr><td><strong>Reativados</strong></td><td>Retorno após 6 meses em Canais ou 12 em Construção; comparação inclusiva.</td><td>8 por evento; 4+4 com dois vendedores.</td><td>80 por vendedor.</td></tr>
+              <tr><td><strong>Expansão de mix</strong></td><td>Primeira compra histórica da família, dentro da campanha e acima do mínimo. KA não pontua.</td><td>10 por família; 5+5 com dois vendedores.</td><td>Sem teto.</td></tr>
+              <tr><td><strong>Venda no quadrimestre</strong></td><td>Realizado regional acumulado dividido pela meta integral dos meses fechados e parcial do mês atual.</td><td>Faixa de 0 a 650+, com +50 por bloco completo acima de 130%.</td><td>Sem teto.</td></tr>
+              <tr><td><strong>Adiantamento</strong></td><td>Checks manuais e independentes de 32%, 56% e 80% por região/mês.</td><td>10 por check.</td><td>30/mês; 120/campanha.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <details open>
+          <summary>Mínimos de expansão de mix</summary>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Segmento</th><th>Família</th><th>Mínimo</th></tr></thead>
+              <tbody>
+                <tr><td>Construção</td><td>Hydrofix</td><td>R$ 3.000</td></tr>
+                <tr><td>Construção</td><td>Grelha + Porta Grelha</td><td>R$ 6.000</td></tr>
+                <tr><td>Construção</td><td>Suporte de Bancada</td><td>R$ 9.000</td></tr>
+                <tr><td>Canais</td><td>Suporte de Bancada</td><td>R$ 1.000</td></tr>
+                <tr><td>Canais</td><td>Grelha + Porta Grelha</td><td>R$ 1.000</td></tr>
+                <tr><td>Canais</td><td>CPP 009</td><td>R$ 2.200</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p>O projeto possui 23 códigos de produtos e 16 grupos KA fixos. Uma primeira compra abaixo do mínimo impede que uma compra posterior seja tratada como novidade.</p>
+        </details>
+
+        <details>
+          <summary>Faixas de XP de venda</summary>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Atingimento exato</th><th>XP</th></tr></thead>
+              <tbody>
+                <tr><td>&lt; 60%</td><td>0</td></tr><tr><td>60% a &lt; 70%</td><td>100</td></tr>
+                <tr><td>70% a &lt; 80%</td><td>200</td></tr><tr><td>80% a &lt; 90%</td><td>350</td></tr>
+                <tr><td>90% a &lt; 100%</td><td>450</td></tr><tr><td>100% a &lt; 110%</td><td>500</td></tr>
+                <tr><td>110% a &lt; 120%</td><td>550</td></tr><tr><td>120% a &lt; 130%</td><td>600</td></tr>
+                <tr><td>130% a &lt; 140%</td><td>650</td></tr><tr><td>≥ 140%</td><td>650 + 50 por bloco completo de 10 p.p. acima de 130%</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p>O percentual não é arredondado antes da faixa: 109,999% vale 500 XP; 110% vale 550; 135% vale 650; 140% vale 700.</p>
+        </details>
+      </section>
+
+      <section id="budget">
+        <h2>Budget, classificação e prêmios</h2>
+        <p>O realizado anual soma vendas comerciais válidas implantadas em 2026 e subtrai todas as devoluções ocorridas em 2026. A inadimplência não reduz o Budget Anual.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Nível</th><th>XP</th><th>Prêmio integral</th></tr></thead>
+            <tbody>
+              <tr><td>Sem classificação</td><td>&lt; 370</td><td>Não definido</td></tr>
+              <tr><td>Bronze</td><td>370–500</td><td>Vale Flash R$ 100</td></tr>
+              <tr><td>Prata</td><td>501–800</td><td>Vale Flash R$ 200</td></tr>
+              <tr><td>Ouro</td><td>801–1.039</td><td>Vale Flash R$ 500</td></tr>
+              <tr><td>Diamante</td><td>1.040–1.200</td><td>R$ 7.500 em PIX</td></tr>
+              <tr><td>Polar</td><td>≥ 1.201</td><td>R$ 15.000 em PIX</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <ul>
+          <li><strong>Budget abaixo de 90%:</strong> campanha sem pagamento.</li>
+          <li><strong>De 90% a 94,99%:</strong> apenas Diamante recebe R$ 1.000 e Polar R$ 2.000.</li>
+          <li><strong>95% ou mais:</strong> prêmio integral do nível.</li>
+        </ul>
+        <div class="callout warning">O painel mostra budget e classificação, mas ainda não calcula o valor do prêmio.</div>
+      </section>
+
+      <section id="dados">
+        <h2>Dados e contratos</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Fonte</th><th>Uso</th></tr></thead>
+            <tbody>
+              <tr><td><code>fct_pedido_item</code></td><td>histórico, valores, produtos, grupo, vendedor e flags comerciais;</td></tr>
+              <tr><td><code>fct_faturamento_item</code></td><td>parte faturada de bloqueados e vínculo entre nota e pedido;</td></tr>
+              <tr><td><code>fct_nota_devolucao</code></td><td>abatimento monetário e detecção de devolução;</td></tr>
+              <tr><td><code>metas_comerciais</code></td><td>participação e meta regional;</td></tr>
+              <tr><td><code>app_vendedor_regiao_time</code></td><td>nome, região, time e segmento;</td></tr>
+              <tr><td><code>vw_clientes_inadimplentes</code></td><td>estado corrente do bloqueio;</td></tr>
+              <tr><td><code>dim_grupo_comercial</code></td><td>identidade e nome do grupo;</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>As funções públicas <code>campanha_polar_carregar_*</code> fornecem budget, vendas, novos, reativados, mix e adiantamento. As funções <code>campanha_polar_salvar_adiantamento*</code> validam e gravam o único dado editável do painel.</p>
+        <div class="callout"><strong>Atualização:</strong> os resultados são recalculados pela situação corrente. Não há cache global nem fotografia persistida do ranking. A lateral mostra o último marcador disponível em <code>cpv_refresh_controle</code>.</div>
+      </section>
+
+      <section id="seguranca">
+        <h2>Segurança e autorização</h2>
+        <div class="grid grid-2">
+          <article class="card">
+            <h3>Leitura</h3>
+            <p><span class="badge info">Autenticado</span></p>
+            <p>Qualquer conta válida do Supabase Auth consulta todas as regiões. Não existe restrição regional por usuário.</p>
+          </article>
+          <article class="card">
+            <h3>Escrita</h3>
+            <p><span class="badge warn">Cinco editores</span></p>
+            <p>Somente as cinco contas cadastradas na allowlist podem alterar adiantamento. A função SQL valida ID e e-mail diretamente no JWT.</p>
+          </article>
+        </div>
+        <ul>
+          <li>a senha não é armazenada pelo aplicativo;</li>
+          <li>a sessão é revalidada em cada execução;</li>
+          <li>chaves secretas/service role são rejeitadas;</li>
+          <li>tabelas de adiantamento não têm acesso direto pela API;</li>
+          <li>as RPCs usam <code>security definer</code> e <code>search_path</code> vazio;</li>
+          <li>o salvamento usa versão para detectar alterações concorrentes.</li>
+        </ul>
+      </section>
+
+      <section id="telas">
+        <h2>Telas do painel</h2>
+        <div class="grid grid-2">
+          <div class="card"><h3>Visão geral</h3>Budget anual e ranking regional pelos cinco indicadores.</div>
+          <div class="card"><h3>Análise individual</h3>Filtro de região, composição do XP e detalhes de cada indicador.</div>
+          <div class="card"><h3>Venda no Quadrimestre</h3>Meta acumulada, realizado, atingimento exato, XP e meta diária.</div>
+          <div class="card"><h3>Clientes novos</h3>Resumo por região e atribuições por vendedor.</div>
+          <div class="card"><h3>Clientes reativados</h3>Última compra, prazo, retorno, atribuição e XP.</div>
+          <div class="card"><h3>Mix de produtos</h3>Família, mínimo, valor, exclusões, pendências e XP.</div>
+          <div class="card"><h3>Adiantamento de meta</h3>Doze checks, últimas atualizações e salvamento transacional.</div>
+        </div>
+      </section>
+
+      <section id="excecoes">
+        <h2>Exceções, divergências e riscos conhecidos</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Prioridade</th><th>Tema</th><th>Situação atual</th></tr></thead>
+            <tbody>
+              <tr><td><span class="badge risk">Alta</span></td><td>Individual × regional</td><td>O PDF diz pontuação individual; o painel agrega e classifica regiões.</td></tr>
+              <tr><td><span class="badge risk">Alta</span></td><td>SMART PODS/MRV</td><td>A exceção de inadimplência não aparece no SQL; pode depender da view de origem.</td></tr>
+              <tr><td><span class="badge risk">Alta</span></td><td>Bloqueio por grupo</td><td>A regra fala em grupo, mas a junção efetiva usa cliente + loja.</td></tr>
+              <tr><td><span class="badge risk">Alta</span></td><td>Fechamento final</td><td>Faltam data/hora de corte, aprovador e política de reabertura.</td></tr>
+              <tr><td><span class="badge warn">Média</span></td><td>Grupo pendente</td><td>Grupos ausentes/desconhecidos podem sumir da consulta em vez de aparecer como pendência.</td></tr>
+              <tr><td><span class="badge warn">Média</span></td><td>Devolução de mix</td><td>Sem produto/item, qualquer devolução vinculada deixa o evento pendente.</td></tr>
+              <tr><td><span class="badge warn">Média</span></td><td>Tetos</td><td>Detalhes mostram XP bruto; o teto de novos/reativados aparece apenas na consolidação.</td></tr>
+              <tr><td><span class="badge warn">Média</span></td><td>Histórico manual</td><td>O banco guarda todas as versões, mas a interface só mostra a última atualização.</td></tr>
+              <tr><td><span class="badge info">Técnica</span></td><td>Fuso</td><td>Clientes/mix usam <code>current_date</code>; budget/vendas usam São Paulo explicitamente.</td></tr>
+              <tr><td><span class="badge info">Técnica</span></td><td>Listas duplicadas</td><td>Produtos, KA e editores existem no código/SQL e em arquivos documentais.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="callout danger"><strong>Regra segura:</strong> dado incompleto não deve ser interpretado como zero, falso ou elegível. Grupo, vendedor, segmento, data ou devolução inconclusivos devem permanecer pendentes até correção.</div>
+      </section>
+
+      <section id="operacao">
+        <h2>Operação e implantação</h2>
+        <h3>Execução local</h3>
+        <pre><code>python -m pip install -r requirements.txt
+python -m streamlit run app.py</code></pre>
+        <p>Configure em <code>.streamlit/secrets.toml</code> apenas <code>SUPABASE_URL</code> e <code>SUPABASE_PUBLISHABLE_KEY</code>.</p>
+        <h3>Preparação do banco</h3>
+        <ol>
+          <li><code>sql/adiantamento_meta.sql</code></li>
+          <li><code>sql/budget_anual.sql</code></li>
+          <li><code>sql/vendas_quadrimestre.sql</code></li>
+          <li><code>sql/clientes_novos.sql</code></li>
+          <li><code>sql/clientes_reativados.sql</code></li>
+          <li><code>sql/mix_produtos.sql</code></li>
+        </ol>
+        <p>O deploy registrado usa Streamlit Community Cloud, repositório <code>LeoWatanabeAmbar/CampanhaPolar</code>, branch <code>main</code> e arquivo principal <code>app.py</code>.</p>
+        <h3>Erros operacionais principais</h3>
+        <ul>
+          <li><code>AUTH_REQUIRED</code>: renovar o login e conferir grants;</li>
+          <li><code>PERMISSION_DENIED</code>: conta fora da allowlist de edição;</li>
+          <li><code>INVALID_MONTH</code>: competência fora de setembro–dezembro/2026;</li>
+          <li><code>INVALID_REGION</code>: região sem meta positiva;</li>
+          <li><code>CONCURRENT_CHANGE</code>: recarregar a versão atual antes de salvar;</li>
+          <li>contrato desatualizado: reaplicar o SQL indicado no Supabase.</li>
+        </ul>
+      </section>
+
+      <section id="testes">
+        <h2>Testes, rastreabilidade e aceite</h2>
+        <p><span class="badge ok">106 testes aprovados</span> A suíte cobre autenticação, refresh, budget, dias úteis, faixas de XP, contratos, SQL, páginas, permissões, histórico e concorrência.</p>
+        <pre><code>python -m pip install "pytest&gt;=8,&lt;9"
+python -m pytest -q</code></pre>
+        <div class="callout warning">Os testes não executam o PostgreSQL nem consultam o Supabase real. Eles não comprovam dados de produção, índices, RLS instalada, estornos/refaturamentos ou as exceções SMART PODS/MRV.</div>
+        <h3>Antes do fechamento</h3>
+        <ul>
+          <li>publicar e conferir as quatro metas;</li>
+          <li>validar feriados e data/hora de corte;</li>
+          <li>registrar commit e versão das funções SQL;</li>
+          <li>preservar uma fotografia de dados e resultados;</li>
+          <li>resolver ou aceitar formalmente as divergências;</li>
+          <li>definir se classificação e prêmio são individuais ou regionais;</li>
+          <li>registrar o aceite do responsável final.</li>
+        </ul>
+      </section>
+
+      <footer>
+        Documento autônomo gerado a partir do código, SQL, testes, regulamento e decisões registradas. Todo o conteúdo necessário para sua leitura está incorporado neste único arquivo HTML.
+      </footer>
+    </main>
+  </div>
+</body>
+</html>

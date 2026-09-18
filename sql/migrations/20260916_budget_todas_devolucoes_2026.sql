@@ -1,6 +1,8 @@
 ﻿-- Atualiza o Budget anual para descontar todas as notas devolvidas em 2026.
 -- A nota original pode pertencer a qualquer ano e nao precisa estar vinculada a um pedido de 2026.
 -- Execute uma vez no SQL Editor do Supabase em instalacoes existentes.
+-- Esta é a etapa final conhecida do Budget; sql/budget_anual.sql já incorpora
+-- o mesmo comportamento para instalações novas.
 begin;
 
 create or replace function public.campanha_polar_carregar_budget_anual()

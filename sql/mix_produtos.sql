@@ -1,5 +1,6 @@
--- Execute no SQL Editor do Supabase para habilitar a página Mix de produtos.
--- A função usa a situação atual das fontes e fica disponível somente para usuários autenticados.
+-- FUNÇÃO: avalia compras das quatro famílias acompanhadas pela expansão de mix.
+-- A saída inclui elegíveis, exclusões e pendências para explicar cada resultado.
+-- A primeira compra histórica da família é calculada desde janeiro/2022.
 begin;
 
 drop function if exists public.campanha_polar_carregar_mix_produtos(date);
@@ -40,6 +41,8 @@ begin
     end if;
 
     return query
+    -- 1. Lista oficial e versionada dos 23 códigos. Produto é texto para manter
+    -- zeros à esquerda; uma alteração aqui exige atualizar o CSV documental.
     with produtos_mix(produto_id, grupo_mix) as (
         values
             ('002920'::text, 'Hydrofix'::text),
@@ -66,6 +69,7 @@ begin
             ('003026', 'Suporte de Bancada'),
             ('003027', 'Suporte de Bancada')
     ),
+    -- 2. Grupos KA são excluídos apenas do indicador de mix.
     grupos_ka(grupo_comercial_id) as (
         values
             ('C02'::text), ('C45'), ('CMN'), ('C49'),
@@ -73,6 +77,7 @@ begin
             ('C57'), ('C65'), ('CTX'), ('E287'),
             ('CII'), ('CGI'), ('C16'), ('C03')
     ),
+    -- 3. Resolve região e segmento apenas para cadastros unívocos.
     vendedores_dim as (
         select
             trim(v.vendedor_id)::text as vendedor_id,
@@ -88,6 +93,7 @@ begin
         where nullif(trim(v.vendedor_id), '') is not null
         group by trim(v.vendedor_id)
     ),
+    -- 4. Valida e nomeia o grupo comercial usado como identidade histórica.
     grupos_dim as (
         select
             trim(g.grupo_comercial_id)::text as grupo_comercial_id,
@@ -96,11 +102,14 @@ begin
         where nullif(trim(g.grupo_comercial_id), '') is not null
         group by trim(g.grupo_comercial_id)
     ),
+    -- 5. Estado corrente do bloqueio financeiro por cliente/loja.
     clientes_bloqueados as (
         select distinct trim(i.cliente_loja_id)::text as cliente_loja_id
         from comercial_marts.vw_clientes_inadimplentes as i
         where nullif(trim(i.cliente_loja_id), '') is not null
     ),
+    -- 6. Contexto no grão físico do pedido para recuperar data e grupo quando a
+    -- origem do valor for o faturamento.
     pedido_contexto as (
         select
             trim(f.filial_id)::text as filial_id,
@@ -117,6 +126,8 @@ begin
           and f.data_emissao <= current_date
         group by trim(f.filial_id), trim(f.pedido_id)
     ),
+    -- 7. Uma compra histórica de produto de mix sem data impede confirmar qual
+    -- evento foi o primeiro da família.
     grupos_com_data_pendente as (
         select distinct nullif(trim(f.grupo_comercial_id), '')::text as grupo_comercial_id
         from comercial_marts.fct_pedido_item as f
@@ -129,6 +140,7 @@ begin
           and f.data_emissao is null
           and nullif(trim(f.grupo_comercial_id), '') is not null
     ),
+    -- 8a. Compras não bloqueadas entram pelo valor bruto já alocado.
     vendas_nao_bloqueadas as (
         select
             trim(f.filial_id)::text as filial_id,
@@ -156,6 +168,7 @@ begin
             nullif(trim(f.grupo_comercial_id), ''), pm.grupo_mix,
             trim(f.produto_id), nullif(trim(f.vendedor_metricas_id), '')
     ),
+    -- 8b. Para bloqueados, somente itens efetivamente faturados participam.
     vendas_bloqueadas_faturadas as (
         select
             p.filial_id,
@@ -188,6 +201,7 @@ begin
         union all
         select * from vendas_bloqueadas_faturadas
     ),
+    -- 9. Normaliza duplicidades antes de consolidar o evento diário.
     vendas_por_produto_vendedor as (
         select
             v.filial_id,
@@ -203,6 +217,7 @@ begin
             v.filial_id, v.pedido_id, v.data_emissao, v.grupo_comercial_id,
             v.grupo_mix, v.produto_id, v.vendedor_id
     ),
+    -- 10. Liga nota e pedido apenas quando a relação é inequívoca.
     notas_pedido as (
         select
             trim(f.nota_fiscal_id)::text as nota_fiscal_id,
@@ -217,6 +232,8 @@ begin
         where nullif(trim(f.nota_fiscal_id), '') is not null
         group by trim(f.nota_fiscal_id), nullif(trim(f.vendedor_metricas_id), '')
     ),
+    -- 11. Como a devolução não informa produto/item, qualquer devolução ligada
+    -- ao pedido torna o mínimo da família inconclusivo.
     pedidos_com_devolucao as (
         select distinct
             n.filial_id,
@@ -228,6 +245,8 @@ begin
          and n.quantidade_pedidos = 1
         where d.data_devolucao is null or d.data_devolucao <= current_date
     ),
+    -- 12. Acrescenta vendedor, região, segmento, participação e flag de
+    -- devolução a cada parcela de produto.
     alocacoes as (
         select
             v.*,
@@ -255,6 +274,8 @@ begin
         where v.valor_bruto_elegivel > 0
           and v.grupo_comercial_id is not null
     ),
+    -- 13. Soma a mesma família em todos os pedidos do grupo no mesmo dia. Dias
+    -- diferentes e famílias diferentes nunca completam o mínimo entre si.
     eventos_campanha as (
         select
             a.grupo_comercial_id,
@@ -286,6 +307,7 @@ begin
           and a.data_emissao < date '2027-01-01'
         group by a.grupo_comercial_id, a.data_emissao, a.grupo_mix
     ),
+    -- 14. Mantém uma linha por vendedor para exibir a divisão do XP.
     detalhes as (
         select
             a.grupo_comercial_id,
@@ -310,6 +332,8 @@ begin
             coalesce(a.nome_vendedor, a.vendedor_id, 'Não identificado'),
             coalesce(a.regiao, '')
     ),
+    -- 15. A primeira compra da família considera todo o histórico elegível,
+    -- inclusive compras anteriores abaixo do mínimo.
     primeira_compra_linha as (
         select
             a.grupo_comercial_id,
@@ -318,6 +342,7 @@ begin
         from alocacoes as a
         group by a.grupo_comercial_id, a.grupo_mix
     ),
+    -- 16. Aplica lista KA e mínimo específico da combinação segmento/família.
     compras_campanha as (
         select
             e.*,
@@ -361,6 +386,8 @@ begin
         p.segmento,
         p.valor_linha_elegivel,
         p.valor_minimo,
+        -- A ordem dos WHEN define a precedência do motivo exibido. Por exemplo,
+        -- KA prevalece sobre compra anterior e devolução prevalece sobre mínimo.
         case
             when p.is_ka then 'Sem XP: cliente KA'
             when p.tem_data_pendente then 'Pendente: data histórica ausente'

@@ -37,7 +37,7 @@ Encontre a URL do projeto e a chave publicável em **Project Settings → API Ke
 1. No Supabase, abra **Authentication → Providers → Email** e mantenha habilitado o login por e-mail e senha.
 2. Desative o cadastro público de usuários para que somente contas administradas tenham acesso.
 3. Em **Authentication → Users**, crie ou convide as pessoas que poderão entrar no painel.
-4. Confirme que Laís e Leonardo usam exatamente os e-mails autorizados no código; esses dois usuários podem editar o adiantamento e os demais possuem consulta.
+4. Confirme que as cinco contas editoras usam exatamente os e-mails autorizados no código: `lais.vendrasco@ambar.tech`, `leonardo.watanabe@ambar.tech`, `jorge.castro@ambar.tech`, `anyelle.santos@ambar.tech` e `luis.oliveira@ambar.tech`. Os demais usuários possuem consulta.
 
 O aplicativo usa a API do Supabase Authentication para validar `auth.users`; não consulta diretamente a tabela protegida nem oferece cadastro público.
 
@@ -49,7 +49,7 @@ Em uma instalação existente, execute [20260916_budget_todas_devolucoes_2026.sq
 
 - mantém as tabelas de adiantamento e histórico sem acesso direto pela API;
 - cria uma função de leitura para usuários autenticados;
-- cria uma função de gravação que confere no JWT se a conta é Laís ou Leonardo;
+- cria uma função de gravação que confere no JWT se a conta pertence à lista das cinco contas editoras;
 - cria funções de consulta para Budget Anual, Venda no Quadrimestre, clientes novos, clientes reativados e expansão de mix;
 - valida competência, região, tipos, versões e histórico dentro do banco.
 
@@ -71,8 +71,8 @@ Clique em **Deploy** e acompanhe os logs. Depois verifique:
 6. carregamento das reativações e conferência da última compra;
 7. carregamento do mix, mínimos e situações sem XP ou pendentes;
 8. consulta com um usuário comum;
-8. salvamento com Laís ou Leonardo;
-9. persistência após recarregar a página.
+9. salvamento com ao menos uma conta editora e bloqueio com uma conta somente leitora;
+10. persistência após recarregar a página.
 
 Como o repositório é privado, o aplicativo nasce privado no Community Cloud. Para usar somente o login do Supabase, altere **App settings → Sharing** para aplicativo público; a URL ficará acessível, mas nenhum dado será carregado antes da autenticação do próprio painel. Se o aplicativo permanecer privado no Community Cloud, cada pessoa precisará passar pelo acesso do Streamlit e depois pelo login do Supabase.
 

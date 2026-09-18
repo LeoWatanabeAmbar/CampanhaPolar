@@ -1,4 +1,8 @@
-"""Consulta de clientes novos pela Data API do Supabase."""
+"""Adaptador da Data API para os eventos de clientes novos.
+
+A classificação e o rateio são executados no PostgreSQL. O adaptador limita-se
+a validar o contrato e converter os valores para o formato consumido pela UI.
+"""
 from __future__ import annotations
 
 from datetime import date
@@ -24,6 +28,8 @@ class NewCustomersRepository:
         self.client = client
 
     def load(self, month: date | None = None) -> list[dict]:
+        # ``None`` solicita toda a campanha; uma data solicita somente a
+        # competência e precisa ser o primeiro dia entre setembro e dezembro.
         if month is not None:
             validate_month(month)
         try:
@@ -50,6 +56,8 @@ class NewCustomersRepository:
         if not isinstance(data, list):
             raise DataAccessError("A consulta de clientes novos devolveu um formato inesperado.")
 
+        # A validação campo a campo transforma uma função RPC desatualizada em
+        # erro explícito, em vez de permitir totais silenciosamente incorretos.
         rows = []
         for item in data:
             if not isinstance(item, dict):

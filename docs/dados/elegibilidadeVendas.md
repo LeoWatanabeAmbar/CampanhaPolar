@@ -82,7 +82,7 @@ A fonte de devolução observada contém valor no nível da nota, sem produto ou
 - Remover o pedido da sequência histórica usada para novos, reativados e mix. Reavaliar os créditos e pedidos posteriores que dependiam dessa compra, consolidar novamente as parcelas e aplicar os tetos individuais; preservar os motivos e os valores para conferência.
 - Fazer o mesmo quando uma quitação reintegrar pedidos anteriormente bloqueados: restaurar a parte em aberto pela implantação original e reavaliar os eventos e pedidos posteriores afetados.
 - Nas devoluções, retirar somente o valor devolvido da competência original e reavaliar o saldo do pedido, os eventos e a sequência histórica. Uma devolução total pode mudar a primeira compra ou a última compra anterior de pedidos posteriores.
-- O adiantamento permanece baseado nos checks manuais de Laís e Leonardo. O recálculo de vendas não altera esses checks automaticamente.
+- O adiantamento permanece baseado nos checks manuais das cinco contas editoras autorizadas. O recálculo de vendas não altera esses checks automaticamente.
 - As confirmações cobrem cancelamentos, quitações, todas as devoluções, a exclusão de bonificações/remessas/transferências de mercadoria, o estorno de nota com pedido ativo e correções após fechamentos anteriores. A apuração corrente sempre é recalculada pela situação atual.
 
 ## Evidências encontradas no código local

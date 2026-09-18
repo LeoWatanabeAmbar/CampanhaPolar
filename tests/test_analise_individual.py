@@ -1,3 +1,5 @@
+"""Testes da consolidação e navegação da página Análise individual."""
+
 from datetime import date
 from decimal import Decimal
 import json

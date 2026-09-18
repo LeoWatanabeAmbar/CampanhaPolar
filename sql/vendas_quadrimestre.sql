@@ -1,5 +1,6 @@
--- Execute no SQL Editor do Supabase para habilitar a página Venda no Quadrimestre.
--- A função devolve uma linha por região com meta positiva na competência.
+-- FUNÇÃO: meta e realizado elegível por região em uma competência da campanha.
+-- A função devolve uma linha por região com meta positiva. A proporcionalização
+-- por dias úteis e o XP são calculados no Python para reutilização nas páginas.
 begin;
 
 drop function if exists public.campanha_polar_carregar_vendas_regionais(date);
@@ -34,9 +35,13 @@ begin
         raise exception 'INVALID_MONTH' using errcode = '22023';
     end if;
 
+    -- Competências encerradas usam o mês inteiro; a competência corrente para
+    -- na data de hoje e nunca inclui pedidos futuros.
     v_data_limite := least(v_hoje, v_fim_competencia);
 
     return query
+    -- 1. Define as regiões participantes e consolida eventuais múltiplas linhas
+    -- de meta da mesma região.
     with metas as (
         select
             trim(m.regiao)::text as regiao,
@@ -52,6 +57,7 @@ begin
           and upper(trim(m.time)) in ('CANAIS', 'TIME NORTE', 'TIME SUL')
         group by trim(m.regiao)
     ),
+    -- 2. Aceita somente vendedores com uma única região no cadastro corrente.
     vendedores_dim as (
         select
             trim(v.vendedor_id)::text as vendedor_id,
@@ -64,11 +70,14 @@ begin
         where nullif(trim(v.vendedor_id), '') is not null
         group by trim(v.vendedor_id)
     ),
+    -- 3. Fotografia corrente dos clientes/lojas bloqueados por inadimplência.
     clientes_bloqueados as (
         select distinct trim(i.cliente_loja_id)::text as cliente_loja_id
         from comercial_marts.vw_clientes_inadimplentes as i
         where nullif(trim(i.cliente_loja_id), '') is not null
     ),
+    -- 4. Lista pedidos comerciais válidos implantados na competência até a
+    -- data limite. A chave física é filial + pedido.
     pedido_contexto as (
         select
             trim(f.filial_id)::text as filial_id,
@@ -87,6 +96,7 @@ begin
           and f.data_emissao <= v_data_limite
         group by trim(f.filial_id), trim(f.pedido_id)
     ),
+    -- 5a. Clientes não bloqueados participam pelo valor bruto do pedido.
     vendas_nao_bloqueadas as (
         select
             trim(f.filial_id)::text as filial_id,
@@ -109,6 +119,7 @@ begin
             trim(f.filial_id), trim(f.pedido_id),
             nullif(trim(f.vendedor_metricas_id), '')
     ),
+    -- 5b. Clientes bloqueados participam somente pela parcela já faturada.
     vendas_bloqueadas_faturadas as (
         select
             p.filial_id,
@@ -143,6 +154,8 @@ begin
         from vendas_brutas as v
         group by v.filial_id, v.pedido_id, v.vendedor_id
     ),
+    -- 6. Relaciona notas a pedidos. Só uma relação inequívoca poderá receber o
+    -- abatimento da devolução.
     notas_pedido as (
         select
             trim(f.nota_fiscal_id)::text as nota_fiscal_id,
@@ -157,6 +170,8 @@ begin
         where nullif(trim(f.nota_fiscal_id), '') is not null
         group by trim(f.nota_fiscal_id), nullif(trim(f.vendedor_metricas_id), '')
     ),
+    -- 7. A devolução já está alocada por vendedor e não deve ser dividida outra
+    -- vez. Notas associadas a mais de um pedido ficam fora deste abatimento.
     devolucoes_por_pedido_vendedor as (
         select
             n.filial_id,
@@ -171,6 +186,7 @@ begin
         where d.data_devolucao is null or d.data_devolucao <= v_hoje
         group by n.filial_id, n.pedido_id, n.vendedor_id
     ),
+    -- 8. Impede saldo negativo quando a devolução ultrapassa o valor elegível.
     vendas_liquidas as (
         select
             v.filial_id,
@@ -186,6 +202,7 @@ begin
          and d.pedido_id = v.pedido_id
          and d.vendedor_id is not distinct from v.vendedor_id
     ),
+    -- 9. Agrega as alocações líquidas na região fixa do vendedor.
     vendas_regionais as (
         select
             vd.regiao,

@@ -1,3 +1,5 @@
+"""Testes do calendário, faixas de XP, acumulado, RPC e página de vendas."""
+
 from datetime import date
 from decimal import Decimal
 from pathlib import Path

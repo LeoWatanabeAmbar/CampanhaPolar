@@ -1,3 +1,5 @@
+"""Testes da consolidação regional, classificação e cartão de budget."""
+
 from datetime import date
 from decimal import Decimal
 from types import SimpleNamespace

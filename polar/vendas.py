@@ -1,4 +1,9 @@
-"""Acompanhamento regional de vendas contra a meta parcial do mês."""
+"""Cálculos do acompanhamento regional de vendas e contrato da respectiva RPC.
+
+O PostgreSQL entrega meta e realizado por região/mês. Este módulo aplica o
+calendário de dias úteis, compõe o acumulado do quadrimestre e converte o
+percentual exato em XP sem arredondar antes das faixas.
+"""
 from __future__ import annotations
 
 from calendar import monthrange
@@ -21,7 +26,10 @@ SEPTEMBER = date(2026, 9, 1)
 OCTOBER = date(2026, 10, 1)
 NOVEMBER = date(2026, 11, 1)
 DECEMBER = date(2026, 12, 1)
+# A lista explícita evita que datas fora do quadrimestre entrem por acidente.
 CAMPAIGN_MONTHS = (SEPTEMBER, OCTOBER, NOVEMBER, DECEMBER)
+# Somente feriados nacionais confirmados são descontados. Feriados locais não
+# devem ser acrescentados sem uma decisão de negócio, pois alteram a meta parcial.
 NATIONAL_HOLIDAYS_2026 = frozenset({
     date(2026, 9, 7),
     date(2026, 10, 12),
@@ -50,6 +58,8 @@ def working_days(
     last_day = date(month.year, month.month, monthrange(month.year, month.month)[1])
     cursor = month
     valid_days: list[date] = []
+    # A referência é inclusiva: quando hoje é dia útil, ele já integra os dias
+    # decorridos e não aparece também nos dias restantes.
     while cursor <= last_day:
         if cursor.weekday() < 5 and cursor not in holiday_set:
             valid_days.append(cursor)
@@ -61,6 +71,8 @@ def working_days(
 
 def campaign_months_through(reference: date) -> tuple[date, ...]:
     """Lista as competências acumuladas da campanha disponíveis na referência."""
+    # Antes da campanha, setembro é mantido para que a tela consiga procurar a
+    # primeira meta sem criar uma coleção vazia e quebrar o cabeçalho.
     if reference < SEPTEMBER:
         return (SEPTEMBER,)
     if reference >= DECEMBER:
@@ -74,6 +86,8 @@ def sales_xp(attainment_pct: Decimal | float | int | None) -> int | None:
     if attainment_pct is None:
         return None
     percentage = _decimal(attainment_pct)
+    # Cada limite inferior é inclusivo. A ordem crescente torna o limite
+    # superior implicitamente exclusivo e preserva exemplos como 109,999%.
     if percentage < 60:
         return 0
     if percentage < 70:
@@ -90,6 +104,7 @@ def sales_xp(attainment_pct: Decimal | float | int | None) -> int | None:
         return 550
     if percentage < 130:
         return 600
+    # Acima de 130%, apenas blocos completos de dez pontos acrescentam 50 XP.
     completed_blocks = ((percentage - Decimal("130")) / Decimal("10")).to_integral_value(
         rounding=ROUND_FLOOR
     )
@@ -116,6 +131,8 @@ def calculate_region_results(
     for row in rows:
         goal = _decimal(row.get("meta"))
         realized = _decimal(row.get("realizado"))
+        # Ausência de meta válida ou de dia útil produz ``None`` em vez de um
+        # percentual artificial de zero, deixando a pendência explícita.
         daily_goal = goal / total_days if goal > 0 and total_days else None
         partial_goal = daily_goal * elapsed_days if daily_goal is not None and elapsed_days else None
         attainment = (
@@ -151,11 +168,15 @@ def calculate_cumulative_region_results(
     """Acumula meses fechados e a parcela decorrida do mês atual por região."""
     if not rows_by_month:
         return []
+    # O último mês disponível é o mês corrente do cálculo. Os meses anteriores
+    # ficam integrais porque a referência já está depois do seu último dia útil.
     months = sorted(rows_by_month)
     current_month = months[-1]
     total_days, elapsed_days, remaining_days = working_days(current_month, reference)
     regions: dict[str, dict] = {}
 
+    # A região pode aparecer em meses diferentes com vendedores distintos. Sets
+    # eliminam repetições na descrição sem alterar os valores monetários.
     for month in months:
         for result in calculate_region_results(rows_by_month[month], month, reference):
             region = str(result["regiao"])
@@ -186,6 +207,8 @@ def calculate_cumulative_region_results(
     results = []
     for region in sorted(regions):
         record = regions[region]
+        # O XP é calculado uma única vez sobre o acumulado; fotografias mensais
+        # não são somadas, pois isso duplicaria o indicador do quadrimestre.
         accumulated_goal = record["meta_acumulada_ate_data"]
         realized = record["realizado_acumulado"]
         attainment = (
@@ -245,6 +268,8 @@ class SalesRepository:
         if not isinstance(data, list):
             raise DataAccessError("A consulta de vendas devolveu um formato inesperado.")
 
+        # Contrato explícito permite apontar exatamente qual SQL deve ser
+        # reaplicado quando a função no Supabase está em versão anterior.
         required = {"data_referencia", "regiao", "time", "meta", "realizado", "vendedores"}
         records = []
         for item in data:
@@ -271,4 +296,6 @@ class SalesRepository:
 
     def load_through(self, reference: date) -> dict[date, list[dict]]:
         """Carrega setembro e todas as competências decorridas até a referência."""
+        # Uma chamada por mês mantém o contrato da RPC simples e permite que o
+        # app reconheça individualmente competências ainda sem meta publicada.
         return {month: self.load(month) for month in campaign_months_through(reference)}

@@ -1,5 +1,7 @@
 # Campanha Polar
 
+Documentação completa: [manual em Markdown](docs/manual/README.md) e [visão navegável em HTML](docs/projeto.html). Ambos consolidam regras de negócio, exceções, arquitetura, contratos de dados, segurança, operação, implantação, testes e pendências do comportamento atual.
+
 Painel implementado no padrão visual do Gestão Comercial, com navegação lateral e sete páginas:
 
 - **Visão geral:** cartão das vendas elegíveis implantadas em 2026, líquidas de todas as notas devolvidas em 2026, contra o budget anual de R$ 119 milhões; ranking regional ordenado pelo XP total, com os cinco indicadores e a classificação da campanha.

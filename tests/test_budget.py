@@ -1,3 +1,5 @@
+"""Testes do contrato e das regras SQL do acompanhamento do budget anual."""
+
 from decimal import Decimal
 from pathlib import Path
 from types import SimpleNamespace

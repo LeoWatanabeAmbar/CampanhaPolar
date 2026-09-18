@@ -1,5 +1,7 @@
 -- Atualiza o Budget anual para nao aplicar o bloqueio por inadimplencia.
 -- Execute uma vez no SQL Editor do Supabase em instalacoes existentes.
+-- MIGRAÇÃO HISTÓRICA: preserva os filtros comerciais e passa a usar o valor
+-- bruto do pedido. A migration seguinte substitui sua regra de devoluções.
 begin;
 
 create or replace function public.campanha_polar_carregar_budget_anual()

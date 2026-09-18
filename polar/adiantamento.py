@@ -1,4 +1,8 @@
-"""Registros manuais de adiantamento acessados pela Data API do Supabase."""
+"""Domínio e persistência dos checks manuais de adiantamento.
+
+O módulo aplica validações rápidas no cliente, mas a autorização definitiva,
+a concorrência otimista e o histórico são responsabilidade das funções SQL.
+"""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -8,6 +12,8 @@ from typing import Any
 from httpx import HTTPError
 from postgrest.exceptions import APIError
 
+# A allowlist é repetida no banco por defesa em profundidade. Alterações nesta
+# tupla exigem migration das constraints/funções e atualização dos testes.
 EDITOR_EMAILS = (
     "lais.vendrasco@ambar.tech",
     "leonardo.watanabe@ambar.tech",
@@ -15,6 +21,8 @@ EDITOR_EMAILS = (
     "anyelle.santos@ambar.tech",
     "luis.oliveira@ambar.tech",
 )
+# Os três booleanos são decisões independentes; uma fase posterior não implica
+# que as anteriores tenham sido confirmadas.
 FIELDS = ("semana_1_32", "semana_2_56", "semana_3_80")
 LOAD_FUNCTION = "campanha_polar_carregar_adiantamento"
 SAVE_FUNCTION = "campanha_polar_salvar_adiantamento"
@@ -52,10 +60,14 @@ class Identity:
 
     @property
     def can_edit(self):
+        # A checagem local controla a experiência da UI. A função SQL repete a
+        # decisão usando o e-mail e o ID extraídos diretamente do JWT.
         return bool(self.user_id and self.email in EDITOR_EMAILS)
 
 
 def validate_month(month: date):
+    # A competência é sempre representada pelo primeiro dia para que Python,
+    # JSON e PostgreSQL compartilhem a mesma chave canônica.
     if (
         not isinstance(month, date)
         or month.day != 1
@@ -66,6 +78,8 @@ def validate_month(month: date):
 
 
 def blank_record(region: str):
+    # Versão zero identifica uma linha virtual, derivada da meta, que ainda não
+    # existe na tabela persistida.
     return {
         "regiao": region,
         "time": "",
@@ -87,6 +101,8 @@ def _api_error_text(error: APIError) -> str:
 
 def data_api_rejection_message(error: APIError, operation: str) -> str:
     """Expõe o código e a mensagem do PostgREST sem incluir detalhes da consulta."""
+    # O detalhe técnico da consulta não é exposto. Código e mensagem do
+    # PostgREST são suficientes para diagnóstico sem vazar SQL ou parâmetros.
     code = str(getattr(error, "code", "") or "").strip()
     message = " ".join(str(getattr(error, "message", "") or "").split())
     prefix = f"A Data API recusou {operation}."
@@ -110,6 +126,8 @@ class Repository:
             return self.client.rpc(function, parameters).execute().data
         except APIError as error:
             text = _api_error_text(error)
+            # Erros estáveis emitidos pelo SQL são traduzidos para exceções de
+            # domínio, mantendo a UI independente de códigos do PostgreSQL.
             if "CONCURRENT_CHANGE" in text:
                 raise ConcurrentChange(
                     "Os registros mudaram em outra sessão. Recarregue antes de salvar."
@@ -135,6 +153,8 @@ class Repository:
         for item in data:
             if not isinstance(item, dict) or not str(item.get("regiao") or "").strip():
                 raise DataAccessError("A Data API devolveu uma região inválida.")
+            # O registro em branco fornece defaults seguros para regiões que
+            # ganharam meta, mas ainda não têm uma linha de adiantamento salva.
             row = blank_record(str(item["regiao"]).strip())
             row.update({
                 "time": str(item.get("time") or ""),
@@ -156,6 +176,8 @@ class Repository:
     def _validate_rows(rows: list[dict]) -> list[dict]:
         seen: set[str] = set()
         payload = []
+        # Validamos o lote inteiro antes de chamar a rede. O banco repetirá as
+        # mesmas garantias porque clientes externos também podem invocar a RPC.
         for row in rows:
             region = row.get("regiao")
             if not isinstance(region, str) or not region.strip() or region != region.strip() or region in seen:
@@ -195,6 +217,8 @@ class Repository:
         """Salva todas as competências em uma única transação no Supabase."""
         if not identity.can_edit:
             raise PermissionDenied(f"Somente {' e '.join(EDITOR_EMAILS)} podem salvar alterações.")
+        # A chave composta impede que duas linhas para a mesma região/mês
+        # cheguem ao banco com versões potencialmente contraditórias.
         grouped: dict[date, list[dict]] = {}
         seen: set[tuple[date, str]] = set()
         for record in records:

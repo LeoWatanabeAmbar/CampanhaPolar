@@ -1,3 +1,4 @@
+# Identidade visual padrão; ajustes mais específicos ficam centralizados em app.py.
 [theme]
 base = "light"
 primaryColor = "#0072D6"
@@ -6,5 +7,6 @@ secondaryBackgroundColor = "#F4F8FC"
 textColor = "#17233A"
 font = "sans serif"
 
+# O painel é executado como serviço web, sem janela local do Streamlit.
 [server]
 headless = true

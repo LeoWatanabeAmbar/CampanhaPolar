@@ -1,3 +1,5 @@
+"""Testes de login, renovação, logout e proteção de credenciais do Supabase."""
+
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 

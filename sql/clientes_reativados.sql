@@ -1,5 +1,6 @@
--- Execute no SQL Editor do Supabase para habilitar a página Clientes reativados.
--- A função usa a situação atual das fontes e fica disponível somente para usuários autenticados.
+-- FUNÇÃO: encontra o primeiro retorno elegível de cada grupo durante a campanha.
+-- PRAZOS: seis meses de calendário em Canais e doze em Construção, com limite
+-- inclusivo. A saída é detalhada por vendedor para permitir divisão 50/50.
 begin;
 
 drop function if exists public.campanha_polar_carregar_clientes_reativados(date);
@@ -37,6 +38,7 @@ begin
     end if;
 
     return query
+    -- 1. Normaliza o cadastro e só aceita região/time unívocos por vendedor.
     with vendedores_dim as (
         select
             trim(v.vendedor_id)::text as vendedor_id,
@@ -52,6 +54,7 @@ begin
         where nullif(trim(v.vendedor_id), '') is not null
         group by trim(v.vendedor_id)
     ),
+    -- 2. Valida a identidade e recupera o nome do grupo comercial.
     grupos_dim as (
         select
             trim(g.grupo_comercial_id)::text as grupo_comercial_id,
@@ -60,11 +63,13 @@ begin
         where nullif(trim(g.grupo_comercial_id), '') is not null
         group by trim(g.grupo_comercial_id)
     ),
+    -- 3. Fotografia corrente dos clientes/lojas inadimplentes.
     clientes_bloqueados as (
         select distinct trim(i.cliente_loja_id)::text as cliente_loja_id
         from comercial_marts.vw_clientes_inadimplentes as i
         where nullif(trim(i.cliente_loja_id), '') is not null
     ),
+    -- 4. Contexto no grão filial + pedido para unir as fontes sem duplicação.
     pedido_contexto as (
         select
             trim(f.filial_id)::text as filial_id,
@@ -83,6 +88,7 @@ begin
           and f.data_emissao <= current_date
         group by trim(f.filial_id), trim(f.pedido_id)
     ),
+    -- 5. Data histórica ausente impede provar o intervalo de inatividade.
     grupos_com_data_pendente as (
         select distinct nullif(trim(f.grupo_comercial_id), '')::text as grupo_comercial_id
         from comercial_marts.fct_pedido_item as f
@@ -94,6 +100,7 @@ begin
           and f.data_emissao is null
           and nullif(trim(f.grupo_comercial_id), '') is not null
     ),
+    -- 6a. Não bloqueados entram pelo valor bruto do pedido.
     vendas_nao_bloqueadas as (
         select
             trim(f.filial_id)::text as filial_id,
@@ -118,6 +125,7 @@ begin
             nullif(trim(f.grupo_comercial_id), ''),
             nullif(trim(f.vendedor_metricas_id), '')
     ),
+    -- 6b. Bloqueados entram somente pela parte faturada.
     vendas_bloqueadas_faturadas as (
         select
             p.filial_id,
@@ -158,6 +166,7 @@ begin
         from vendas_brutas as v
         group by v.filial_id, v.pedido_id, v.data_emissao, v.grupo_comercial_id, v.vendedor_id
     ),
+    -- 7. Constrói vínculo inequívoco entre nota, vendedor e pedido.
     notas_pedido as (
         select
             trim(f.nota_fiscal_id)::text as nota_fiscal_id,
@@ -172,6 +181,7 @@ begin
         where nullif(trim(f.nota_fiscal_id), '') is not null
         group by trim(f.nota_fiscal_id), nullif(trim(f.vendedor_metricas_id), '')
     ),
+    -- 8. Devolução sem vínculo confiável impede concluir a sequência do grupo.
     grupos_com_devolucao_pendente as (
         select distinct nullif(trim(d.grupo_comercial_id), '')::text as grupo_comercial_id
         from comercial_marts.fct_nota_devolucao as d
@@ -183,6 +193,7 @@ begin
           and n.nota_fiscal_id is null
           and (d.data_devolucao is null or d.data_devolucao <= current_date)
     ),
+    -- 9. Consolida devoluções já alocadas ao vendedor.
     devolucoes_por_pedido_vendedor as (
         select
             n.filial_id,
@@ -197,6 +208,7 @@ begin
         where d.data_devolucao is null or d.data_devolucao <= current_date
         group by n.filial_id, n.pedido_id, n.vendedor_id
     ),
+    -- 10. Saldo zero remove o pedido da sequência de compras elegíveis.
     vendas_liquidas as (
         select
             v.*,
@@ -210,6 +222,7 @@ begin
          and d.pedido_id = v.pedido_id
          and d.vendedor_id is not distinct from v.vendedor_id
     ),
+    -- 11. Enriquecimento de vendedor, região, segmento e meta participante.
     alocacoes as (
         select
             v.*,
@@ -233,6 +246,7 @@ begin
         where v.valor_liquido_elegivel > 0
           and v.grupo_comercial_id is not null
     ),
+    -- 12. Consolida todos os pedidos do grupo na mesma data.
     eventos as (
         select
             a.grupo_comercial_id,
@@ -259,6 +273,7 @@ begin
         from alocacoes as a
         group by a.grupo_comercial_id, a.data_emissao
     ),
+    -- 13. Preserva os pedidos atribuídos a cada vendedor para auditoria.
     detalhes as (
         select
             a.grupo_comercial_id,
@@ -278,6 +293,7 @@ begin
             coalesce(a.nome_vendedor, a.vendedor_id, 'Não identificado'),
             coalesce(a.regiao, '')
     ),
+    -- 14. LAG obtém a data do evento elegível imediatamente anterior do grupo.
     sequencia as (
         select
             e.*,
@@ -287,6 +303,7 @@ begin
             )::date as data_ultima_compra
         from eventos as e
     ),
+    -- 15. Compara meses de calendário de forma inclusiva e restringe à campanha.
     candidatos as (
         select
             s.*,
@@ -319,6 +336,7 @@ begin
           and dp.grupo_comercial_id is null
           and dv.grupo_comercial_id is null
     ),
+    -- 16. Um grupo pontua no máximo na primeira reativação da campanha.
     reativados as (
         select c.*
         from (

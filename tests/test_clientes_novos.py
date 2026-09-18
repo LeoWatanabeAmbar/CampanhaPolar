@@ -1,3 +1,5 @@
+"""Testes do contrato, SQL, resumo e interface de clientes novos."""
+
 from datetime import date
 from pathlib import Path
 from types import SimpleNamespace

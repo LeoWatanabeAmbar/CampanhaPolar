@@ -1,4 +1,8 @@
-"""Consulta de clientes reativados pela Data API do Supabase."""
+"""Adaptador da Data API para eventos de clientes reativados.
+
+O banco determina a última compra, o prazo de 6/12 meses e a divisão de XP. O
+Python protege a interface contra respostas incompletas ou incompatíveis.
+"""
 from __future__ import annotations
 
 from datetime import date
@@ -24,6 +28,8 @@ class ReactivatedCustomersRepository:
         self.client = client
 
     def load(self, month: date | None = None) -> list[dict]:
+        # A página atual usa ``None`` para carregar a campanha inteira, mas o
+        # parâmetro mensal permanece disponível para conferências específicas.
         if month is not None:
             validate_month(month)
         try:
@@ -56,6 +62,8 @@ class ReactivatedCustomersRepository:
                 "A consulta de clientes reativados devolveu um formato inesperado."
             )
 
+        # Datas permanecem como texto ISO até a camada de apresentação, evitando
+        # aplicar timezone indevido a campos que representam somente uma data.
         rows = []
         for item in data:
             if not isinstance(item, dict):

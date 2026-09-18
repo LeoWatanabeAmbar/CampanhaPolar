@@ -1,3 +1,5 @@
+"""Testes do marcador de refresh e da conversão para o fuso de São Paulo."""
+
 from datetime import datetime
 from types import SimpleNamespace
 from zoneinfo import ZoneInfo

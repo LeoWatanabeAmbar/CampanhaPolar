@@ -1,4 +1,8 @@
-"""Consulta do realizado usado no acompanhamento do budget anual."""
+"""Contrato Python do indicador de budget anual.
+
+O SQL calcula o realizado. Este módulo valida o formato, preserva precisão
+decimal e acrescenta o budget fixo usado na apresentação.
+"""
 from __future__ import annotations
 
 from decimal import Decimal, InvalidOperation
@@ -13,6 +17,7 @@ from polar.adiantamento import (
     data_api_rejection_message,
 )
 
+# Decimal evita que arredondamentos binários alterem o percentual exibido.
 ANNUAL_BUDGET = Decimal("119000000")
 LOAD_FUNCTION = "campanha_polar_carregar_budget_anual"
 
@@ -40,6 +45,8 @@ class BudgetRepository:
         except HTTPError as error:
             raise DataAccessError("Não foi possível consultar o budget anual.") from error
 
+        # A RPC deve sempre produzir exatamente uma linha, inclusive quando o
+        # realizado é zero. Qualquer outro formato indica contrato incompatível.
         if not isinstance(data, list) or len(data) != 1 or not isinstance(data[0], dict):
             raise DataAccessError("A consulta do budget anual devolveu um formato inesperado.")
         item = data[0]

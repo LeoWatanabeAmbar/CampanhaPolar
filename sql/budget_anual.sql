@@ -1,5 +1,8 @@
--- Execute no SQL Editor do Supabase para habilitar o gráfico do Budget Anual.
--- O realizado soma as vendas elegíveis de 2026 e desconta todas as devoluções ocorridas em 2026.
+-- FUNÇÃO: realizado corporativo usado para validar o Budget Anual da campanha.
+-- LEITURA: qualquer usuário autenticado; as tabelas de origem não são expostas.
+-- REGRA: soma pedidos comerciais válidos implantados em 2026 e subtrai todas
+-- as devoluções ocorridas em 2026, mesmo que a venda original seja de outro ano.
+-- IMPORTANTE: inadimplência não reduz este indicador corporativo.
 begin;
 
 drop function if exists public.campanha_polar_carregar_budget_anual();
@@ -23,6 +26,8 @@ begin
     end if;
 
     return query
+    -- Primeiro reduzimos os itens às chaves de pedidos implantados no período.
+    -- Isso evita que um item fora da janela traga um pedido indevido ao total.
     with pedido_contexto as (
         select
             trim(f.filial_id)::text as filial_id,
@@ -37,6 +42,8 @@ begin
           and f.data_emissao <= v_hoje
         group by trim(f.filial_id), trim(f.pedido_id)
     ),
+    -- Soma o valor já alocado na fonte por pedido e vendedor. Não há novo
+    -- rateio nesta função.
     vendas_brutas as (
         select
             trim(f.filial_id)::text as filial_id,
@@ -65,10 +72,13 @@ begin
         from vendas_brutas as v
         group by v.filial_id, v.pedido_id, v.vendedor_id
     ),
+    -- Consolida todas as alocações elegíveis no realizado anual bruto.
     vendas_2026 as (
         select coalesce(sum(v.valor_bruto_elegivel), 0)::numeric as valor_bruto
         from vendas_por_pedido_vendedor as v
     ),
+    -- O budget usa a data da devolução e não exige vínculo com o pedido, por
+    -- decisão de negócio específica deste indicador.
     devolucoes_2026 as (
         select coalesce(sum(d.valor_devolucao_alocado), 0)::numeric as valor_devolvido
         from comercial_marts.fct_nota_devolucao as d

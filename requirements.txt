@@ -1,4 +1,8 @@
+# Interface e componentes visuais do painel.
 streamlit>=1.59,<2
+# Transformações tabulares usadas nos resumos e tabelas.
 pandas>=2,<3
+# Supabase Auth, Data API e dependências PostgREST.
 supabase>=2.31,<3
+# Base de fusos para servidores que não trazem America/Sao_Paulo no sistema.
 tzdata>=2025.1

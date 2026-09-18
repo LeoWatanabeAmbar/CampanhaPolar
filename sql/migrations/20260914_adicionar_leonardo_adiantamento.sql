@@ -1,5 +1,7 @@
 -- Para bancos que já receberam a versão original de adiantamento_meta.sql.
 -- Preserva os registros e o histórico, ampliando as contas autorizadas.
+-- MIGRAÇÃO HISTÓRICA: foi sucedida pela migration de 16/09 com cinco editores;
+-- não deve ser usada sozinha em uma instalação nova.
 begin;
 alter table comercial_marts.campanha_polar_adiantamento
     drop constraint if exists campanha_polar_adiantamento_atualizado_por_check;

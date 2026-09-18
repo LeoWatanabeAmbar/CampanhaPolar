@@ -1,3 +1,5 @@
+"""Testes do domínio, RPCs, concorrência e interface de adiantamento."""
+
 from copy import deepcopy
 from datetime import date, datetime, timezone
 from pathlib import Path

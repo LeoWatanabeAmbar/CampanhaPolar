@@ -1,4 +1,8 @@
-"""Consulta de expansão de mix pela Data API do Supabase."""
+"""Adaptador da Data API para compras das famílias de expansão de mix.
+
+A RPC retorna tanto eventos pontuados quanto exclusões e pendências. Manter todos
+os registros é essencial para explicar por que uma compra não gerou XP.
+"""
 from __future__ import annotations
 
 from datetime import date
@@ -24,6 +28,8 @@ class ProductMixRepository:
         self.client = client
 
     def load(self, month: date | None = None) -> list[dict]:
+        # Competência nula significa campanha completa. O banco continua sendo a
+        # fonte da janela histórica usada para identificar a primeira compra.
         if month is not None:
             validate_month(month)
         try:
@@ -54,6 +60,8 @@ class ProductMixRepository:
                 "A consulta do mix de produtos devolveu um formato inesperado."
             )
 
+        # ``valor_minimo`` pode ser nulo quando a família não pertence ao
+        # segmento; os demais valores numéricos são normalizados para a UI.
         rows = []
         for item in data:
             if not isinstance(item, dict):
